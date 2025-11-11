@@ -13,7 +13,7 @@ const createStock = async (req, res) => {
       warranty,
     } = req.body;
 
-    // Validation
+    // ✅ Validation
     const missingFields = [];
     if (!productName) missingFields.push({ name: "productName", message: "Product Name is required" });
     if (!quantity) missingFields.push({ name: "quantity", message: "Quantity is required" });
@@ -41,6 +41,7 @@ const createStock = async (req, res) => {
       newProductId = `PID-${String(nextNumber).padStart(4, "0")}`;
     }
 
+    // ✅ Create new stock record
     const stock = new Stock({
       productId: newProductId,
       productName,
@@ -59,6 +60,7 @@ const createStock = async (req, res) => {
       message: "Stock created successfully",
       data: stock,
     });
+
   } catch (error) {
     return res.status(500).json({
       status: 500,
@@ -67,6 +69,7 @@ const createStock = async (req, res) => {
     });
   }
 };
+
 
 // ✅ List Stocks (with search + pagination)
 const listStock = async (req, res) => {
@@ -79,7 +82,7 @@ const listStock = async (req, res) => {
       ? {
           $or: [
             { productName: { $regex: keyword, $options: "i" } },
-            { supplier: { $regex: keyword, $options: "i" } },
+            { productId: { $regex: keyword, $options: "i" } },
           ],
         }
       : {};
