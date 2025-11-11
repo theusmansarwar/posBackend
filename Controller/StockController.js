@@ -10,6 +10,7 @@ const createStock = async (req, res) => {
       totalPrice,
       salePrice,
       supplier,
+      purchaseDate,
       warranty,
     } = req.body;
 
@@ -21,7 +22,7 @@ const createStock = async (req, res) => {
     if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
     if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
     if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
-    if (!warranty) missingFields.push({ name: "warranty", message: "Warranty is required" });
+    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -50,7 +51,8 @@ const createStock = async (req, res) => {
       totalPrice,
       salePrice,
       supplier,
-      warranty,
+      purchaseDate,
+      warranty: warranty || null, // optional
     });
 
     await stock.save();

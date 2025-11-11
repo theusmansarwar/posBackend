@@ -28,7 +28,10 @@ const stockSchema = new mongoose.Schema(
          type: String, 
          required: true 
     },
-   
+    purchaseDate:{
+         type: String, 
+         required: true 
+    },
     warranty:{ 
       type: String, 
          required: true 
