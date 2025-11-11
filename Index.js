@@ -12,7 +12,7 @@ const statsRoutes = require("./Routes/DashboardRoute");
 
 const Bills = require("./Routes/BillRoutes");
 const app = express();
-const port = 5008;
+const port = 5013;
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
