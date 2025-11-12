@@ -119,6 +119,43 @@ const createBill = async (req, res) => {
     });
   }
 };
+const getBillByBillId = async (req, res) => {
+  try {
+    const { billId } = req.params;
+
+    if (!billId) {
+      return res.status(400).json({
+        status: 400,
+        message: "Bill ID is required",
+      });
+    }
+
+    // Find bill by billId and populate related fields
+    const bill = await Bills.findOne({ billId })
+      .populate("items.productId", "productName salePrice") // fetch product info
+      .populate("staff", "name email role") // fetch staff info
+      .exec();
+
+    if (!bill) {
+      return res.status(404).json({
+        status: 404,
+        message: "Bill not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Bill fetched successfully",
+      data: bill,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching bill",
+      error: error.message,
+    });
+  }
+};
 
 // 📋 List Bills (with pagination + search)
 const listBills = async (req, res) => {
@@ -185,4 +222,5 @@ module.exports = {
   createBill,
   listBills,
   deleteBill,
+  getBillByBillId
 };
