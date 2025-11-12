@@ -5,6 +5,7 @@ const router=express.Router();
 router.post("/create", createStock);
 router.get("/list", listStock);
 router.put("/update/:id", updateStock);
+router.put("/addnew/:id", updateStock);
 router.delete("/delete/:id", deleteStock);
 router.delete("/deleteMultiple", deleteMultipleStocks);
 module.exports = router;

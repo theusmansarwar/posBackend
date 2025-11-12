@@ -4,27 +4,39 @@ const Stock = require("../Models/StockModel");
 // 🧾 Create new Bill (Checkout)
 const createBill = async (req, res) => {
   try {
-    const { items, discount, paymentMode, userPaidAmount, staff, shift } = req.body;
+    const {
+      items,
+      discountType,
+      discountValue,
+      paymentMode,
+      change,
+      userPaidAmount,
+      staff,
+      shift,
+      labourCost,
+      
+    } = req.body;
 
-    // Validation
+    // ✅ Basic Validation
     if (!staff) return res.status(400).json({ message: "Staff ID is required" });
     if (!shift) return res.status(400).json({ message: "Shift is required" });
-    if (!paymentMode) return res.status(400).json({ message: "Payment mode is required" });
-    if (!items || items.length === 0)
+    if (!paymentMode)
+      return res.status(400).json({ message: "Payment mode is required" });
+    if (!items || !Array.isArray(items) || items.length === 0)
       return res.status(400).json({ message: "No items provided in the bill" });
 
-    // ✅ Generate unique Bill ID (BILL-0001, BILL-0002, ...)
+    // ✅ Generate Bill ID
     const lastBill = await Bills.findOne().sort({ createdAt: -1 });
-    let newBillId = "BILL-0001";
+    let newBillId = "BILL-000001";
     if (lastBill && lastBill.billId) {
       const lastNumber = parseInt(lastBill.billId.split("-")[1]);
-      newBillId = `BILL-${String(lastNumber + 1).padStart(4, "0")}`;
+      newBillId = `BILL-${String(lastNumber + 1).padStart(6, "0")}`;
     }
 
     let totalAmount = 0;
     const processedItems = [];
 
-    // ✅ Validate and deduct stock
+    // ✅ Process Each Item
     for (const item of items) {
       const stockItem = await Stock.findById(item.productId);
 
@@ -43,7 +55,7 @@ const createBill = async (req, res) => {
       const itemTotal = item.quantity * stockItem.salePrice;
       totalAmount += itemTotal;
 
-      // Deduct from stock
+      // Deduct quantity from stock
       stockItem.quantity -= item.quantity;
       await stockItem.save();
 
@@ -56,20 +68,37 @@ const createBill = async (req, res) => {
       });
     }
 
-    // ✅ Apply discount and calculate totals
-    const discountedTotal = totalAmount - (discount || 0);
-    const remainingAmount = discountedTotal - (userPaidAmount || 0);
+    // ✅ Calculate Discount
+    let finalDiscount = 0;
+    if (discountType === "percent") {
+      finalDiscount = (totalAmount * (discountValue || 0)) / 100;
+    } else if (discountType === "amount") {
+      finalDiscount = discountValue || 0;
+    }
 
-    // ✅ Create Bill
+    // ✅ Add Labour Cost (if any)
+    const labour = Number(labourCost) || 0;
+    const discountedTotal = totalAmount - finalDiscount + labour;
+
+    // ✅ Remaining / Change Calculation
+    const paidAmount = Number(userPaidAmount) || 0;
+    const changeAmount = Number(change) || 0;
+    const remainingAmount = discountedTotal - paidAmount;
+
+    // ✅ Determine status (Paid or Pending)
+    const isPaid = remainingAmount <= 0;
+
+    // ✅ Create New Bill
     const newBill = new Bills({
       billId: newBillId,
       items: processedItems,
-      discount,
+      discount: finalDiscount,
       paymentMode,
       totalAmount: discountedTotal,
       remainingAmount,
-      userPaidAmount,
-      status: remainingAmount <= 0, // mark as paid if no remaining balance
+      userPaidAmount: paidAmount,
+      labourCost: labour,
+      status: isPaid,
       staff,
       shift,
     });
@@ -78,7 +107,7 @@ const createBill = async (req, res) => {
 
     return res.status(201).json({
       status: 201,
-      message: "Bill created successfully",
+      message: "✅ Bill created successfully",
       data: newBill,
     });
   } catch (error) {

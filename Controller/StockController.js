@@ -12,6 +12,7 @@ const createStock = async (req, res) => {
       supplier,
       purchaseDate,
       warranty,
+      rackNo,
     } = req.body;
 
     // ✅ Validation
@@ -23,6 +24,7 @@ const createStock = async (req, res) => {
     if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
     if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
     if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
+    if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -52,7 +54,8 @@ const createStock = async (req, res) => {
       salePrice,
       supplier,
       purchaseDate,
-      warranty: warranty || null, // optional
+      rackNo,
+      warranty: warranty || null,
     });
 
     await stock.save();
@@ -62,7 +65,6 @@ const createStock = async (req, res) => {
       message: "Stock created successfully",
       data: stock,
     });
-
   } catch (error) {
     return res.status(500).json({
       status: 500,
@@ -72,6 +74,58 @@ const createStock = async (req, res) => {
   }
 };
 
+// ✅ Add new stock batch or update prices only
+const addnewStock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { unitPrice, salePrice, totalPrice, warranty, purchaseDate } = req.body;
+
+    const missingFields = [];
+    if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
+    if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
+    if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
+    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Validation failed",
+        missingFields,
+      });
+    }
+
+    const updatedStock = await Stock.findByIdAndUpdate(
+      id,
+      {
+        unitPrice,
+        salePrice,
+        totalPrice,
+        warranty: warranty || null,
+        purchaseDate,
+      },
+      { new: true }
+    );
+
+    if (!updatedStock) {
+      return res.status(404).json({
+        status: 404,
+        message: "Stock not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Stock updated successfully",
+      data: updatedStock,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Error updating stock",
+      error: error.message,
+    });
+  }
+};
 
 // ✅ List Stocks (with search + pagination)
 const listStock = async (req, res) => {
@@ -85,6 +139,7 @@ const listStock = async (req, res) => {
           $or: [
             { productName: { $regex: keyword, $options: "i" } },
             { productId: { $regex: keyword, $options: "i" } },
+            { supplier: { $regex: keyword, $options: "i" } },
           ],
         }
       : {};
@@ -112,7 +167,7 @@ const listStock = async (req, res) => {
   }
 };
 
-// ✅ Update Stock
+// ✅ Update Complete Stock Record
 const updateStock = async (req, res) => {
   try {
     const { id } = req.params;
@@ -124,6 +179,8 @@ const updateStock = async (req, res) => {
       salePrice,
       supplier,
       warranty,
+      rackNo,
+      purchaseDate,
     } = req.body;
 
     const missingFields = [];
@@ -133,7 +190,8 @@ const updateStock = async (req, res) => {
     if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
     if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
     if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
-    if (!warranty) missingFields.push({ name: "warranty", message: "Warranty is required" });
+    if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
+    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -145,7 +203,17 @@ const updateStock = async (req, res) => {
 
     const updatedStock = await Stock.findByIdAndUpdate(
       id,
-      { productName, quantity, unitPrice, totalPrice, salePrice, supplier, warranty },
+      {
+        productName,
+        quantity,
+        unitPrice,
+        totalPrice,
+        salePrice,
+        supplier,
+        warranty: warranty || null,
+        rackNo,
+        purchaseDate,
+      },
       { new: true }
     );
 
@@ -198,7 +266,7 @@ const deleteMultipleStocks = async (req, res) => {
   try {
     const { ids } = req.body;
 
-    if (!ids || ids.length === 0) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
         status: 400,
         message: "No stock IDs provided",
@@ -222,6 +290,7 @@ const deleteMultipleStocks = async (req, res) => {
 
 module.exports = {
   createStock,
+  addnewStock,
   listStock,
   updateStock,
   deleteStock,
