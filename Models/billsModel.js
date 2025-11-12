@@ -27,7 +27,7 @@ const BillsSchema = new mongoose.Schema(
     subtotal: { type: Number }, // total before discount/labour
     discountType: {
       type: String,
-      enum: ["percent", "amount"],
+      enum: ["percent","amount"],
       default: "amount",
     },
     discountValue: { type: Number, default: 0 }, // % or amount value
@@ -36,7 +36,7 @@ const BillsSchema = new mongoose.Schema(
     totalAmount: { type: Number }, // after discount + labour
 
     // 💳 Payment Info
-    paymentMode: { type: String, enum: ["cash", "card", "credit"] },
+    paymentMode: { type: String },
     userPaidAmount: { type: Number, default: 0 },
     remainingAmount: { type: Number, default: 0 },
     change: { type: Number, default: 0 },
