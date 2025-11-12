@@ -215,10 +215,109 @@ const deleteBill = async (req, res) => {
     return res.status(500).json({ message: "Error deleting bill", error: error.message });
   }
 };
+const updateBill = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const { items, discountType, discountValue, userPaidAmount, labourCost, paymentMode, shift } = req.body;
+
+    if (!billId) return res.status(400).json({ message: "Bill ID is required" });
+    if (!items || !Array.isArray(items) || items.length === 0) return res.status(400).json({ message: "No items provided" });
+
+    // Fetch existing bill
+    const existingBill = await Bills.findOne({ billId }).populate("items.productId");
+    if (!existingBill) return res.status(404).json({ message: "Bill not found" });
+
+    // Build a map of old items for quick lookup
+    const oldItemsMap = {};
+    for (const oldItem of existingBill.items) {
+      oldItemsMap[oldItem.productId._id] = oldItem.quantity;
+    }
+
+    let totalAmount = 0;
+    const processedItems = [];
+
+    for (const newItem of items) {
+      const stockItem = await Stock.findById(newItem.productId);
+      if (!stockItem) return res.status(404).json({ message: `Product not found: ${newItem.productId}` });
+
+      const oldQuantity = oldItemsMap[newItem.productId] || 0;
+      const quantityDiff = newItem.quantity - oldQuantity;
+
+      if (quantityDiff > 0 && stockItem.quantity < quantityDiff) {
+        return res.status(400).json({ message: `Not enough stock for ${stockItem.productName}. Available: ${stockItem.quantity}` });
+      }
+
+      // Update stock
+      stockItem.quantity -= quantityDiff; // if diff is negative, it adds back to stock
+      await stockItem.save();
+
+      const itemTotal = newItem.quantity * stockItem.salePrice;
+      totalAmount += itemTotal;
+
+      processedItems.push({
+        productId: stockItem._id,
+        productName: stockItem.productName,
+        quantity: newItem.quantity,
+        salePrice: stockItem.salePrice,
+        total: itemTotal,
+      });
+
+      // Remove processed old item from map
+      delete oldItemsMap[newItem.productId];
+    }
+
+    // Return remaining old items (removed items) to stock
+    for (const removedProductId in oldItemsMap) {
+      const stockItem = await Stock.findById(removedProductId);
+      if (stockItem) {
+        stockItem.quantity += oldItemsMap[removedProductId];
+        await stockItem.save();
+      }
+    }
+
+    // Calculate discount
+    let finalDiscount = 0;
+    if (discountType === "percent") finalDiscount = (totalAmount * (discountValue || 0)) / 100;
+    else if (discountType === "amount") finalDiscount = discountValue || 0;
+
+    const labour = Number(labourCost) || 0;
+    const discountedTotal = totalAmount - finalDiscount + labour;
+    const paidAmount = Number(userPaidAmount) || 0;
+    const remainingAmount = discountedTotal - paidAmount;
+    const isPaid = remainingAmount <= 0;
+
+    // Update bill
+    existingBill.items = processedItems;
+    existingBill.discount = finalDiscount;
+    existingBill.totalAmount = discountedTotal;
+    existingBill.remainingAmount = remainingAmount;
+    existingBill.userPaidAmount = paidAmount;
+    existingBill.labourCost = labour;
+    existingBill.status = isPaid;
+    existingBill.paymentMode = paymentMode || existingBill.paymentMode;
+    existingBill.shift = shift || existingBill.shift;
+
+    await existingBill.save();
+    await existingBill.populate("staff", "name email");
+    await existingBill.populate("items.productId", "productName salePrice");
+
+    return res.status(200).json({
+      status: 200,
+      message: "✅ Bill updated successfully",
+      data: existingBill,
+    });
+
+  } catch (error) {
+    console.error("❌ Error updating bill:", error);
+    return res.status(500).json({ status: 500, message: error.message });
+  }
+};
+
 
 module.exports = {
   createBill,
   listBills,
   deleteBill,
-  getBillByBillId
+  getBillByBillId,
+  updateBill
 };

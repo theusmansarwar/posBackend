@@ -11,7 +11,9 @@ const BillsSchema = new mongoose.Schema(
     // 🧾 Line items of the bill
     items: [
       {
-        productId: {type: String ,
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Stock",
           required: true,
         },
         productName: { type: String },
