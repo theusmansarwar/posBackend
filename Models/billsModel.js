@@ -7,8 +7,8 @@ const BillsSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    isDeleted: { type: Boolean, default: true },
 
-    // 🧾 Line items of the bill
     items: [
       {
         productId: {
@@ -27,7 +27,7 @@ const BillsSchema = new mongoose.Schema(
     subtotal: { type: Number }, // total before discount/labour
     discountType: {
       type: String,
-      enum: ["percent","amount"],
+      enum: ["percent", "amount"],
       default: "amount",
     },
     discountValue: { type: Number, default: 0 }, // % or amount value

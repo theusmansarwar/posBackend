@@ -78,12 +78,14 @@ const createStock = async (req, res) => {
 const addnewStock = async (req, res) => {
   try {
     const { id } = req.params;
-    const { unitPrice, salePrice, totalPrice, warranty, purchaseDate } = req.body;
+    const { unitPrice, salePrice, totalPrice, warranty, purchaseDate, quantity } = req.body;
 
+    // ✅ Validation
     const missingFields = [];
     if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
     if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
     if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
+    if (!quantity) missingFields.push({ name: "quantity", message: "Quantity is required" });
     if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
 
     if (missingFields.length > 0) {
@@ -94,6 +96,19 @@ const addnewStock = async (req, res) => {
       });
     }
 
+    // ✅ Fetch existing stock
+    const existingStock = await Stock.findById(id);
+    if (!existingStock) {
+      return res.status(404).json({
+        status: 404,
+        message: "Stock not found",
+      });
+    }
+
+    // ✅ Update quantity (add new to old)
+    const updatedQuantity = existingStock.quantity + Number(quantity);
+
+    // ✅ Update stock record
     const updatedStock = await Stock.findByIdAndUpdate(
       id,
       {
@@ -102,16 +117,10 @@ const addnewStock = async (req, res) => {
         totalPrice,
         warranty: warranty || null,
         purchaseDate,
+        quantity: updatedQuantity,
       },
       { new: true }
     );
-
-    if (!updatedStock) {
-      return res.status(404).json({
-        status: 404,
-        message: "Stock not found",
-      });
-    }
 
     return res.status(200).json({
       status: 200,
@@ -126,6 +135,7 @@ const addnewStock = async (req, res) => {
     });
   }
 };
+
 
 // ✅ List Stocks (with search + pagination)
 const listStock = async (req, res) => {
