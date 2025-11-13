@@ -1,7 +1,6 @@
 const express= require("express");
 const { createStock, listStock, updateStock, deleteStock, deleteMultipleStocks, addnewStock } = require("../Controller/StockController");
 const router=express.Router();
-
 router.post("/create", createStock);
 router.get("/list", listStock);
 router.put("/update/:id", updateStock);

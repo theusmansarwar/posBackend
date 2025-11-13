@@ -10,6 +10,8 @@ const stock=require("./Routes/StockRoutes");
 const AuthRoutes = require("./Routes/AuthRoutes");
 const statsRoutes = require("./Routes/DashboardRoute");
 
+const expenceRoutes = require("./Routes/ExpenceRoutes");
+
 const Bills = require("./Routes/BillRoutes");
 const app = express();
 const port = 5013;
@@ -28,6 +30,7 @@ app.use("/stock", stock);
 app.use("/bill", Bills);
 app.use("/auth", AuthRoutes);
 app.use("/stats", statsRoutes);
+app.use("/expence", expenceRoutes);
 connectDB().then(() => {
     app.listen(port, () => {
         console.log("Server is running on port:", port);
