@@ -1,7 +1,7 @@
-const Expence = require("../Models/ExpenceModel");
+const Expense = require("../Models/ExpenseModel");
 
-// 🧾 Add new expense with auto-generated expenceId
-const AddExpence = async (req, res) => {
+// 🧾 Add new expense with auto-generated ExpenseId
+const AddExpense = async (req, res) => {
   try {
     const { name, amount, comment } = req.body;
 
@@ -19,27 +19,27 @@ const AddExpence = async (req, res) => {
     }
 
     // ✅ Generate new Expense ID (E0001, E0002, ...)
-    const lastExpence = await Expence.findOne().sort({ createdAt: -1 });
+    const lastExpense = await Expense.findOne().sort({ createdAt: -1 });
     let newIdNumber = 1;
-    if (lastExpence && lastExpence.expenceId) {
-      const lastNumber = parseInt(lastExpence.expenceId.replace("E", ""));
+    if (lastExpense && lastExpense.ExpenseId) {
+      const lastNumber = parseInt(lastExpense.ExpenseId.replace("E", ""));
       newIdNumber = lastNumber + 1;
     }
-    const expenceId = `E${String(newIdNumber).padStart(4, "0")}`;
+    const ExpenseId = `E${String(newIdNumber).padStart(4, "0")}`;
 
     // ✅ Create and Save
-    const newExpence = new Expence({
-      expenceId,
+    const newExpense = new Expense({
+      ExpenseId,
       name,
       amount,
       comment: comment || "",
     });
-    await newExpence.save();
+    await newExpense.save();
 
     return res.status(201).json({
       status: 201,
       message: "✅ Expense created successfully",
-      data: newExpence,
+      data: newExpense,
     });
   } catch (error) {
     console.error("❌ Error creating expense:", error);
@@ -51,8 +51,8 @@ const AddExpence = async (req, res) => {
   }
 };
 
-// 📄 Get all expenses (search by name or expenceId)
-const getAllExpence = async (req, res) => {
+// 📄 Get all expenses (search by name or ExpenseId)
+const getAllExpense = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -61,12 +61,12 @@ const getAllExpence = async (req, res) => {
     const filter = {
       $or: [
         { name: { $regex: keyword, $options: "i" } },
-        { expenceId: { $regex: keyword, $options: "i" } },
+        { ExpenseId: { $regex: keyword, $options: "i" } },
       ],
     };
 
-    const totalExpence = await Expence.countDocuments(filter);
-    const expenses = await Expence.find(filter)
+    const totalExpense = await Expense.countDocuments(filter);
+    const expenses = await Expense.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit);
@@ -74,8 +74,8 @@ const getAllExpence = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Expenses fetched successfully",
-      totalExpence,
-      totalPages: Math.ceil(totalExpence / limit),
+      totalExpense,
+      totalPages: Math.ceil(totalExpense / limit),
       currentPage: page,
       limit,
       data: expenses,
@@ -90,7 +90,7 @@ const getAllExpence = async (req, res) => {
 };
 
 // ✏️ Update expense
-const updateExpence = async (req, res) => {
+const updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, amount, comment } = req.body;
@@ -108,13 +108,13 @@ const updateExpence = async (req, res) => {
       });
     }
 
-    const updatedExpence = await Expence.findByIdAndUpdate(
+    const updatedExpense = await Expense.findByIdAndUpdate(
       id,
       { name, amount, comment },
       { new: true }
     );
 
-    if (!updatedExpence) {
+    if (!updatedExpense) {
       return res.status(404).json({
         status: 404,
         message: "Expense not found",
@@ -124,7 +124,7 @@ const updateExpence = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Expense updated successfully",
-      data: updatedExpence,
+      data: updatedExpense,
     });
   } catch (error) {
     return res.status(500).json({
@@ -136,7 +136,7 @@ const updateExpence = async (req, res) => {
 };
 
 // 🗑️ Delete multiple expenses
-const deleteMultipleExpence = async (req, res) => {
+const deleteMultipleExpense = async (req, res) => {
   try {
     const { ids } = req.body;
 
@@ -147,7 +147,7 @@ const deleteMultipleExpence = async (req, res) => {
       });
     }
 
-    const result = await Expence.deleteMany({ _id: { $in: ids } });
+    const result = await Expense.deleteMany({ _id: { $in: ids } });
 
     return res.status(200).json({
       status: 200,
@@ -162,4 +162,4 @@ const deleteMultipleExpence = async (req, res) => {
   }
 };
 
-module.exports = { AddExpence, getAllExpence, updateExpence, deleteMultipleExpence };
+module.exports = { AddExpense, getAllExpense, updateExpense, deleteMultipleExpense };

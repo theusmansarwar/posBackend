@@ -10,7 +10,7 @@ const stock=require("./Routes/StockRoutes");
 const AuthRoutes = require("./Routes/AuthRoutes");
 const statsRoutes = require("./Routes/DashboardRoute");
 
-const expenceRoutes = require("./Routes/ExpenceRoutes");
+const ExpenseRoutes = require("./Routes/ExpenseRoutes");
 
 const Bills = require("./Routes/BillRoutes");
 const app = express();
@@ -30,7 +30,7 @@ app.use("/stock", stock);
 app.use("/bill", Bills);
 app.use("/auth", AuthRoutes);
 app.use("/stats", statsRoutes);
-app.use("/expence", expenceRoutes);
+app.use("/Expense", ExpenseRoutes);
 connectDB().then(() => {
     app.listen(port, () => {
         console.log("Server is running on port:", port);
