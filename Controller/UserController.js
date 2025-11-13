@@ -41,9 +41,8 @@ const createUser = async (req, res) => {
   try {
     const { name, email, password, role, status } = req.body;
 
+    // ✅ Validation
     const missingFields = [];
-
-    // ✅ Validate required fields
     if (!name) missingFields.push({ name: "name", message: "Name is required" });
     if (!email) missingFields.push({ name: "email", message: "Email is required" });
     if (!password) missingFields.push({ name: "password", message: "Password is required" });
@@ -64,23 +63,21 @@ const createUser = async (req, res) => {
       return res.status(400).json({ status: 400, message: "Invalid role ID" });
     }
 
-    // ✅ Generate unique userId like "usr-0001"
+    // ✅ Auto-generate User ID (U0001, U0002, ...)
     const lastUser = await User.findOne().sort({ createdAt: -1 });
+    let newUserId = "U0001";
 
-    let newIdNumber = 1;
     if (lastUser && lastUser.userId) {
-      const lastNumber = parseInt(lastUser.userId.split("-")[1]);
-      newIdNumber = lastNumber + 1;
+      const lastNumber = parseInt(lastUser.userId.replace("U", ""));
+      newUserId = `U${String(lastNumber + 1).padStart(4, "0")}`;
     }
 
-    const userId = `usr-${newIdNumber.toString().padStart(4, "0")}`;
-
-    // ✅ Create new user with generated ID
+    // ✅ Create user
     const user = new User({
-      userId,
+      userId: newUserId,
       name,
       email,
-      password, // ⚠️ Consider hashing later with bcrypt
+      password, // ⚠️ You should hash this using bcrypt later
       role,
       status,
     });
@@ -89,10 +86,11 @@ const createUser = async (req, res) => {
 
     return res.status(201).json({
       status: 201,
-      message: "User created successfully",
+      message: "✅ User created successfully",
       data: user,
     });
   } catch (error) {
+    console.error("❌ Error creating user:", error);
     return res.status(500).json({
       status: 500,
       message: "Something went wrong while creating user",
@@ -100,6 +98,7 @@ const createUser = async (req, res) => {
     });
   }
 };
+
 
 //get all users
 const listUser= async(req, res) => {

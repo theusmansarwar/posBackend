@@ -5,6 +5,7 @@ const AddExpence = async (req, res) => {
   try {
     const { name, amount, comment } = req.body;
 
+    // ✅ Validation
     const missingFields = [];
     if (!name) missingFields.push({ name: "name", message: "Name is required" });
     if (!amount) missingFields.push({ name: "amount", message: "Amount is required" });
@@ -17,27 +18,31 @@ const AddExpence = async (req, res) => {
       });
     }
 
-    // ✅ Generate new expenceId
+    // ✅ Generate new Expense ID (E0001, E0002, ...)
     const lastExpence = await Expence.findOne().sort({ createdAt: -1 });
     let newIdNumber = 1;
-
     if (lastExpence && lastExpence.expenceId) {
-      const lastNumber = parseInt(lastExpence.expenceId.split("-")[1]);
+      const lastNumber = parseInt(lastExpence.expenceId.replace("E", ""));
       newIdNumber = lastNumber + 1;
     }
+    const expenceId = `E${String(newIdNumber).padStart(4, "0")}`;
 
-    const expenceId = `EXP-${newIdNumber.toString().padStart(4, "0")}`;
-
-    // ✅ Create new expense
-    const newExpence = new Expence({ expenceId, name, amount, comment:comment || "" });
+    // ✅ Create and Save
+    const newExpence = new Expence({
+      expenceId,
+      name,
+      amount,
+      comment: comment || "",
+    });
     await newExpence.save();
 
     return res.status(201).json({
       status: 201,
-      message: "Expense created successfully",
+      message: "✅ Expense created successfully",
       data: newExpence,
     });
   } catch (error) {
+    console.error("❌ Error creating expense:", error);
     return res.status(500).json({
       status: 500,
       message: "Something went wrong while creating expense",

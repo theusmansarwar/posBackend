@@ -26,10 +26,11 @@ const createBill = async (req, res) => {
 
     // ✅ Generate Bill ID (BILL-000001, BILL-000002, ...)
     const lastBill = await Bills.findOne().sort({ createdAt: -1 });
-    let newBillId = "BILL-000001";
+     let newBillId = "B000001";
     if (lastBill && lastBill.billId) {
-      const lastNumber = parseInt(lastBill.billId.split("-")[1]);
-      newBillId = `BILL-${String(lastNumber + 1).padStart(6, "0")}`;
+      // Extract number part (remove 'B' prefix)
+      const lastNumber = parseInt(lastBill.billId.replace("B", ""));
+      newBillId = `B${String(lastNumber + 1).padStart(6, "0")}`;
     }
 
     // ✅ Process Each Item
@@ -279,14 +280,11 @@ const updateBill = async (req, res) => {
     let finalDiscount = 0;
     if (discountType === "percent") finalDiscount = (totalAmount * (discountValue || 0)) / 100;
     else if (discountType === "amount") finalDiscount = discountValue || 0;
-
     const labour = Number(labourCost) || 0;
     const discountedTotal = totalAmount - finalDiscount + labour;
     const paidAmount = Number(userPaidAmount) || 0;
     const remainingAmount = discountedTotal - paidAmount;
     const isPaid = remainingAmount <= 0;
-
-    // Update bill
     existingBill.items = processedItems;
     existingBill.discount = finalDiscount;
     existingBill.totalAmount = discountedTotal;
@@ -296,17 +294,14 @@ const updateBill = async (req, res) => {
     existingBill.status = isPaid;
     existingBill.paymentMode = paymentMode || existingBill.paymentMode;
     existingBill.shift = shift || existingBill.shift;
-
     await existingBill.save();
     await existingBill.populate("staff", "name email");
     await existingBill.populate("items.productId", "productName salePrice");
-
     return res.status(200).json({
       status: 200,
       message: "✅ Bill updated successfully",
       data: existingBill,
     });
-
   } catch (error) {
     console.error("❌ Error updating bill:", error);
     return res.status(500).json({ status: 500, message: error.message });

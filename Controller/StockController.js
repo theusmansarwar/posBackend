@@ -34,14 +34,13 @@ const createStock = async (req, res) => {
       });
     }
 
-    // ✅ Auto-generate Product ID (PID-0001, PID-0002, ...)
+    // ✅ Auto-generate Product ID (P0001, P0002, ...)
     const lastStock = await Stock.findOne().sort({ createdAt: -1 });
-    let newProductId = "PID-0001";
+    let newProductId = "P0001";
 
     if (lastStock && lastStock.productId) {
-      const lastNumber = parseInt(lastStock.productId.split("-")[1]);
-      const nextNumber = lastNumber + 1;
-      newProductId = `PID-${String(nextNumber).padStart(4, "0")}`;
+      const lastNumber = parseInt(lastStock.productId.replace("P", ""));
+      newProductId = `P${String(lastNumber + 1).padStart(4, "0")}`;
     }
 
     // ✅ Create new stock record
@@ -62,10 +61,11 @@ const createStock = async (req, res) => {
 
     return res.status(201).json({
       status: 201,
-      message: "Stock created successfully",
+      message: "✅ Stock created successfully",
       data: stock,
     });
   } catch (error) {
+    console.error("❌ Error creating stock:", error);
     return res.status(500).json({
       status: 500,
       message: "Error creating stock",
@@ -73,6 +73,7 @@ const createStock = async (req, res) => {
     });
   }
 };
+
 
 // ✅ Add new stock batch or update prices only
 const addnewStock = async (req, res) => {
