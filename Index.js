@@ -8,7 +8,7 @@ const Roles = require("./Routes/RoleRoutes");
 const User = require("./Routes/UserRoutes");
 const stock=require("./Routes/StockRoutes");
 const AuthRoutes = require("./Routes/AuthRoutes");
-// const statsRoutes = require("./Routes/DashboardRoute");
+const statsRoutes = require("./Routes/DashboardRoute");
 
 const ExpenseRoutes = require("./Routes/ExpenseRoutes");
 
@@ -29,7 +29,7 @@ app.use("/user", User);
 app.use("/stock", stock);
 app.use("/bill", Bills);
 app.use("/auth", AuthRoutes);
-// app.use("/stats", statsRoutes);
+app.use("/stats", statsRoutes);
 app.use("/Expense", ExpenseRoutes);
 connectDB().then(() => {
     app.listen(port, () => {
