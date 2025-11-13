@@ -4,12 +4,14 @@ const ExpenceSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
     },
     amount: { type: Number },
     comment: {
       type: String,
-      required: true,
+    },
+     expenceId:{
+      type: String,
+      unique: true,
     },
   },
   { timestamps: true }

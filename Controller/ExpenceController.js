@@ -1,4 +1,6 @@
 const Expence = require("../Models/ExpenceModel");
+
+// 🧾 Add new expense with auto-generated expenceId
 const AddExpence = async (req, res) => {
   try {
     const { name, amount, comment } = req.body;
@@ -6,7 +8,6 @@ const AddExpence = async (req, res) => {
     const missingFields = [];
     if (!name) missingFields.push({ name: "name", message: "Name is required" });
     if (!amount) missingFields.push({ name: "amount", message: "Amount is required" });
-    if (!comment) missingFields.push({ name: "comment", message: "Comment is required" });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -16,8 +17,19 @@ const AddExpence = async (req, res) => {
       });
     }
 
+    // ✅ Generate new expenceId
+    const lastExpence = await Expence.findOne().sort({ createdAt: -1 });
+    let newIdNumber = 1;
+
+    if (lastExpence && lastExpence.expenceId) {
+      const lastNumber = parseInt(lastExpence.expenceId.split("-")[1]);
+      newIdNumber = lastNumber + 1;
+    }
+
+    const expenceId = `EXP-${newIdNumber.toString().padStart(4, "0")}`;
+
     // ✅ Create new expense
-    const newExpence = new Expence({ name, amount, comment });
+    const newExpence = new Expence({ expenceId, name, amount, comment:comment || "" });
     await newExpence.save();
 
     return res.status(201).json({
@@ -33,6 +45,8 @@ const AddExpence = async (req, res) => {
     });
   }
 };
+
+// 📄 Get all expenses (search by name or expenceId)
 const getAllExpence = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -40,7 +54,10 @@ const getAllExpence = async (req, res) => {
     const keyword = req.query.keyword || "";
 
     const filter = {
-      $or: [{ name: { $regex: keyword, $options: "i" } }],
+      $or: [
+        { name: { $regex: keyword, $options: "i" } },
+        { expenceId: { $regex: keyword, $options: "i" } },
+      ],
     };
 
     const totalExpence = await Expence.countDocuments(filter);
@@ -66,6 +83,8 @@ const getAllExpence = async (req, res) => {
     });
   }
 };
+
+// ✏️ Update expense
 const updateExpence = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,6 +129,8 @@ const updateExpence = async (req, res) => {
     });
   }
 };
+
+// 🗑️ Delete multiple expenses
 const deleteMultipleExpence = async (req, res) => {
   try {
     const { ids } = req.body;
