@@ -28,33 +28,38 @@ const getDashboardData = async (req, res) => {
     // =======================
     // 🧾 EXPENSES
     // =======================
-    const expenseToday = await Expense.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(new Date()), $lte: endOfDay(new Date()) } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const expenseYesterday = await Expense.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(yesterday), $lte: endOfDay(yesterday) } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const expenseWeek = await Expense.aggregate([
-      { $match: { createdAt: { $gte: startOfWeek(today), $lte: endOfDay(today) } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const expenseMonth = await Expense.aggregate([
-      { $match: { createdAt: { $gte: startOfMonth(today), $lte: endOfMonth(today) } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const expenseLastMonth = await Expense.aggregate([
-      { $match: { createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
+    const [expenseToday, expenseYesterday, expenseWeek, expenseMonth, expenseLastMonth, totalExpense] =
+      await Promise.all([
+        Expense.aggregate([
+          { $match: { createdAt: { $gte: startOfDay(today), $lte: endOfDay(today) } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: { createdAt: { $gte: startOfDay(yesterday), $lte: endOfDay(yesterday) } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: { createdAt: { $gte: startOfWeek(today), $lte: endOfDay(today) } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: { createdAt: { $gte: startOfMonth(today), $lte: endOfMonth(today) } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: { createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $group: { _id: null, total: { $sum: "$amount" } } }, // total all-time expenses
+        ]),
+      ]);
 
     // =======================
     // 📦 PRODUCTS DATA
     // =======================
     const totalProducts = await Stock.countDocuments();
 
-    // ✔ Total price of all available stock (quantity × unitPrice)
     const totalProductPrice = await Stock.aggregate([
       {
         $group: {
@@ -79,15 +84,13 @@ const getDashboardData = async (req, res) => {
       },
     ];
 
-    // Daily + weekly + monthly
-    const [soldToday, soldYesterday, soldWeek, soldMonth, soldLastMonth] =
-      await Promise.all([
-        Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
-        Bills.aggregate(soldPipeline(startOfDay(yesterday), endOfDay(yesterday))),
-        Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
-        Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
-        Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
-      ]);
+    const [soldToday, soldYesterday, soldWeek, soldMonth, soldLastMonth] = await Promise.all([
+      Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
+      Bills.aggregate(soldPipeline(startOfDay(yesterday), endOfDay(yesterday))),
+      Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
+      Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
+      Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
+    ]);
 
     // =======================
     // 🧾 TOTAL SALES (ALL TIME)
@@ -96,11 +99,11 @@ const getDashboardData = async (req, res) => {
       { $unwind: "$items" },
       {
         $group: {
-            _id: null,
-            totalSaleAmount: { $sum: { $multiply: ["$items.quantity", "$items.salePrice"] }},
-            totalQtySold: { $sum: "$items.quantity" }
-        }
-      }
+          _id: null,
+          totalSaleAmount: { $sum: { $multiply: ["$items.quantity", "$items.salePrice"] } },
+          totalQtySold: { $sum: "$items.quantity" },
+        },
+      },
     ]);
 
     // =======================
@@ -121,6 +124,7 @@ const getDashboardData = async (req, res) => {
         thisWeek: expenseWeek[0]?.total || 0,
         thisMonth: expenseMonth[0]?.total || 0,
         lastMonth: expenseLastMonth[0]?.total || 0,
+        totalExpense: totalExpense[0]?.total || 0,
       },
 
       products: {
@@ -128,7 +132,6 @@ const getDashboardData = async (req, res) => {
           quantity: totalProducts,
           price: totalProductPrice[0]?.totalPrice || 0,
         },
-
         today: {
           quantity: soldToday[0]?.totalQty || 0,
           sale: soldToday[0]?.totalPrice || 0,
@@ -149,16 +152,14 @@ const getDashboardData = async (req, res) => {
           quantity: soldLastMonth[0]?.totalQty || 0,
           sale: soldLastMonth[0]?.totalPrice || 0,
         },
-
         totalSold: {
           quantity: totalSales[0]?.totalQtySold || 0,
           sale: totalSales[0]?.totalSaleAmount || 0,
-        }
+        },
       },
 
       pendingAmount: pendingAmount[0]?.totalPending || 0,
     });
-
   } catch (error) {
     console.error("Dashboard API Error:", error);
     res.status(500).json({ message: "Server Error", error });
