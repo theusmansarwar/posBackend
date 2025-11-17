@@ -214,7 +214,8 @@ const deleteMultiBills = async (req, res) => {
     // Delete all bills matching those IDs
     const result = await Bills.deleteMany({ _id: { $in: ids } });
 
-    return res.json({
+    return res.status(200).json({
+      status:200,
       message: "Bills deleted successfully",
       deletedCount: result.deletedCount,
     });
