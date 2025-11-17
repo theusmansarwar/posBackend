@@ -73,8 +73,8 @@ const createBill = async (req, res) => {
         productId: stockItem._id,
         productName: stockItem.productName,
         quantity: item.quantity,
-        salePrice: stockItem.salePrice,
-        total: item.quantity * stockItem.salePrice,
+        salePrice: item.salePrice,
+        total: item.quantity * item.salePrice,
       });
     }
 
