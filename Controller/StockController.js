@@ -157,7 +157,7 @@ const listStock = async (req, res) => {
 
     const total = await Stock.countDocuments(query);
     const stocks = await Stock.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
