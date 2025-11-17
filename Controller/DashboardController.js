@@ -2,11 +2,11 @@ const mongoose = require("mongoose");
 const Bills = require("../Models/billsModel");
 const Stock = require("../Models/StockModel");
 const Expense = require("../Models/ExpenseModel");
+
 const getDashboardData = async (req, res) => {
   try {
     const now = new Date();
 
-    // Helper date boundaries
     const startOfDay = (d) => new Date(d.setHours(0, 0, 0, 0));
     const endOfDay = (d) => new Date(d.setHours(23, 59, 59, 999));
     const startOfWeek = (d) => {
@@ -25,9 +25,9 @@ const getDashboardData = async (req, res) => {
     const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
 
-    // =====================
-    // 🧾 EXPENSE DATA
-    // =====================
+    // =======================
+    // 🧾 EXPENSES
+    // =======================
     const expenseToday = await Expense.aggregate([
       { $match: { createdAt: { $gte: startOfDay(new Date()), $lte: endOfDay(new Date()) } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
@@ -49,72 +49,71 @@ const getDashboardData = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
-    // =====================
-    // 💰 SALES DATA
-    // =====================
-    const salesToday = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(new Date()), $lte: endOfDay(new Date()) } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const salesYesterday = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(yesterday), $lte: endOfDay(yesterday) } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const salesWeek = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfWeek(today), $lte: endOfDay(today) } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const salesMonth = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfMonth(today), $lte: endOfMonth(today) } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const salesLastMonth = await Bills.aggregate([
-      { $match: { createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-
-    // =====================
-    // 📦 PRODUCT STATS
-    // =====================
+    // =======================
+    // 📦 PRODUCTS DATA
+    // =======================
     const totalProducts = await Stock.countDocuments();
 
-    const soldToday = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(new Date()), $lte: endOfDay(new Date()) } } },
-      { $unwind: "$items" },
-      { $group: { _id: null, totalSold: { $sum: "$items.quantity" } } },
-    ]);
-    const soldYesterday = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfDay(yesterday), $lte: endOfDay(yesterday) } } },
-      { $unwind: "$items" },
-      { $group: { _id: null, totalSold: { $sum: "$items.quantity" } } },
-    ]);
-    const soldWeek = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfWeek(today), $lte: endOfDay(today) } } },
-      { $unwind: "$items" },
-      { $group: { _id: null, totalSold: { $sum: "$items.quantity" } } },
-    ]);
-    const soldMonth = await Bills.aggregate([
-      { $match: { createdAt: { $gte: startOfMonth(today), $lte: endOfMonth(today) } } },
-      { $unwind: "$items" },
-      { $group: { _id: null, totalSold: { $sum: "$items.quantity" } } },
-    ]);
-    const soldLastMonth = await Bills.aggregate([
-      { $match: { createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } } },
-      { $unwind: "$items" },
-      { $group: { _id: null, totalSold: { $sum: "$items.quantity" } } },
+    // ✔ Total price of all available stock (quantity × unitPrice)
+    const totalProductPrice = await Stock.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalPrice: { $sum: { $multiply: ["$quantity", "$unitPrice"] } },
+        },
+      },
     ]);
 
-    // =====================
+    // =======================
+    // 🛒 SOLD PRODUCTS (QTY + PRICE)
+    // =======================
+    const soldPipeline = (start, end) => [
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: null,
+          totalQty: { $sum: "$items.quantity" },
+          totalPrice: { $sum: { $multiply: ["$items.quantity", "$items.salePrice"] } },
+        },
+      },
+    ];
+
+    // Daily + weekly + monthly
+    const [soldToday, soldYesterday, soldWeek, soldMonth, soldLastMonth] =
+      await Promise.all([
+        Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
+        Bills.aggregate(soldPipeline(startOfDay(yesterday), endOfDay(yesterday))),
+        Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
+        Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
+        Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
+      ]);
+
+    // =======================
+    // 🧾 TOTAL SALES (ALL TIME)
+    // =======================
+    const totalSales = await Bills.aggregate([
+      { $unwind: "$items" },
+      {
+        $group: {
+            _id: null,
+            totalSaleAmount: { $sum: { $multiply: ["$items.quantity", "$items.salePrice"] }},
+            totalQtySold: { $sum: "$items.quantity" }
+        }
+      }
+    ]);
+
+    // =======================
     // 🧾 PENDING AMOUNT
-    // =====================
+    // =======================
     const pendingAmount = await Bills.aggregate([
-      { $match: { status: false } }, // unpaid bills
+      { $match: { status: false } },
       { $group: { _id: null, totalPending: { $sum: "$remainingAmount" } } },
     ]);
 
-    // =====================
-    // ✅ RESPONSE
-    // =====================
+    // =======================
+    // 🔥 RESPONSE
+    // =======================
     res.json({
       expense: {
         today: expenseToday[0]?.total || 0,
@@ -123,23 +122,43 @@ const getDashboardData = async (req, res) => {
         thisMonth: expenseMonth[0]?.total || 0,
         lastMonth: expenseLastMonth[0]?.total || 0,
       },
-      sales: {
-        today: salesToday[0]?.total || 0,
-        yesterday: salesYesterday[0]?.total || 0,
-        thisWeek: salesWeek[0]?.total || 0,
-        thisMonth: salesMonth[0]?.total || 0,
-        lastMonth: salesLastMonth[0]?.total || 0,
-      },
+
       products: {
-        totalProducts,
-        todaySold: soldToday[0]?.totalSold || 0,
-        yesterdaySold: soldYesterday[0]?.totalSold || 0,
-        thisWeekSold: soldWeek[0]?.totalSold || 0,
-        thisMonthSold: soldMonth[0]?.totalSold || 0,
-        lastMonthSold: soldLastMonth[0]?.totalSold || 0,
+        totalProducts: {
+          quantity: totalProducts,
+          price: totalProductPrice[0]?.totalPrice || 0,
+        },
+
+        today: {
+          quantity: soldToday[0]?.totalQty || 0,
+          sale: soldToday[0]?.totalPrice || 0,
+        },
+        yesterday: {
+          quantity: soldYesterday[0]?.totalQty || 0,
+          sale: soldYesterday[0]?.totalPrice || 0,
+        },
+        thisWeek: {
+          quantity: soldWeek[0]?.totalQty || 0,
+          sale: soldWeek[0]?.totalPrice || 0,
+        },
+        thisMonth: {
+          quantity: soldMonth[0]?.totalQty || 0,
+          sale: soldMonth[0]?.totalPrice || 0,
+        },
+        lastMonth: {
+          quantity: soldLastMonth[0]?.totalQty || 0,
+          sale: soldLastMonth[0]?.totalPrice || 0,
+        },
+
+        totalSold: {
+          quantity: totalSales[0]?.totalQtySold || 0,
+          sale: totalSales[0]?.totalSaleAmount || 0,
+        }
       },
+
       pendingAmount: pendingAmount[0]?.totalPending || 0,
     });
+
   } catch (error) {
     console.error("Dashboard API Error:", error);
     res.status(500).json({ message: "Server Error", error });
