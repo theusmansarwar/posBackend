@@ -24,6 +24,7 @@ const createBill = async (req, res) => {
     // VALIDATION
     // -------------------------
     if (!staff) return res.status(400).json({ message: "Staff ID is required" });
+    if (!totalAmount) return res.status(400).json({ message: "totalAmount is required" });
     if (!shift) return res.status(400).json({ message: "Shift is required" });
     if (!paymentMode)
       return res.status(400).json({ message: "Payment mode is required" });
@@ -83,8 +84,6 @@ const createBill = async (req, res) => {
     const newBill = new Bills({
       billId: newBillId,
       items: processedItems,
-
-      // FRONTEND VALUES
       subtotal,
       discountType,
       discountValue,
@@ -95,11 +94,7 @@ const createBill = async (req, res) => {
       userPaidAmount,
       remainingAmount,
       change,
-
-      // STATUS
       status: remainingAmount <= 0,
-
-      // STAFF
       staff,
       shift,
       isDeleted: false,
