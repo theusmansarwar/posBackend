@@ -22,9 +22,9 @@ const createStock = async (req, res) => {
     if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
     if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
     if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
-    if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
+    // if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
     if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
-    if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
+    // if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
