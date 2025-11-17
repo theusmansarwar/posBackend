@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { createBill, listBills, deleteBill, getBillByBillId, updateBill } = require("../Controller/BillController");
+const { createBill, listBills, deleteMultiBills, getBillByBillId, updateBill } = require("../Controller/BillController");
 
 router.post("/create", createBill);
 router.get("/list", listBills);
-router.delete("/:id", deleteBill);
+router.delete("/deletemany", deleteMultiBills);
 router.get("/:billId", getBillByBillId);
 
 router.put("/:billId", updateBill);

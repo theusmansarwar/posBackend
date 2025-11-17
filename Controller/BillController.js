@@ -202,20 +202,30 @@ const listBills = async (req, res) => {
 };
 
 // ❌ Delete Bill
-const deleteBill = async (req, res) => {
+const deleteMultiBills = async (req, res) => {
   try {
-    const { id } = req.params;
-    const bill = await Bills.findByIdAndDelete(id);
+    const { ids } = req.body;
 
-    if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
+    // Validate input
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "IDs array is required" });
     }
 
-    return res.json({ message: "Bill deleted successfully" });
+    // Delete all bills matching those IDs
+    const result = await Bills.deleteMany({ _id: { $in: ids } });
+
+    return res.json({
+      message: "Bills deleted successfully",
+      deletedCount: result.deletedCount,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Error deleting bill", error: error.message });
+    return res.status(500).json({
+      message: "Error deleting bills",
+      error: error.message,
+    });
   }
 };
+
 const updateBill = async (req, res) => {
   try {
     const { billId } = req.params;
@@ -312,7 +322,7 @@ const updateBill = async (req, res) => {
 module.exports = {
   createBill,
   listBills,
-  deleteBill,
+  deleteMultiBills,
   getBillByBillId,
   updateBill
 };
