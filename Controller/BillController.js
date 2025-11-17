@@ -6,35 +6,47 @@ const createBill = async (req, res) => {
   try {
     const {
       items,
+      subtotal,
       discountType,
       discountValue,
+      discount,
+      labourCost,
+      totalAmount,
       paymentMode,
-      change,
       userPaidAmount,
+      remainingAmount,
+      change,
       staff,
       shift,
-      labourCost,
     } = req.body;
 
-    // ✅ Validation
+    // -------------------------
+    // VALIDATION
+    // -------------------------
     if (!staff) return res.status(400).json({ message: "Staff ID is required" });
     if (!shift) return res.status(400).json({ message: "Shift is required" });
     if (!paymentMode)
       return res.status(400).json({ message: "Payment mode is required" });
-    if (!items || !Array.isArray(items) || items.length === 0)
-      return res.status(400).json({ message: "No items provided in the bill" });
 
-    // ✅ Generate Bill ID (BILL-000001, BILL-000002, ...)
+    if (!items || !Array.isArray(items) || items.length === 0)
+      return res
+        .status(400)
+        .json({ message: "No items provided in the bill" });
+
+    // -------------------------
+    // BILL ID GENERATION (B000001)
+    // -------------------------
     const lastBill = await Bills.findOne().sort({ createdAt: -1 });
-     let newBillId = "B000001";
+    let newBillId = "B000001";
+
     if (lastBill && lastBill.billId) {
-      // Extract number part (remove 'B' prefix)
       const lastNumber = parseInt(lastBill.billId.replace("B", ""));
       newBillId = `B${String(lastNumber + 1).padStart(6, "0")}`;
     }
 
-    // ✅ Process Each Item
-    let totalAmount = 0;
+    // -------------------------
+    // PROCESS ITEMS & DECREASE STOCK
+    // -------------------------
     const processedItems = [];
 
     for (const item of items) {
@@ -52,10 +64,7 @@ const createBill = async (req, res) => {
         });
       }
 
-      const itemTotal = item.quantity * stockItem.salePrice;
-      totalAmount += itemTotal;
-
-      // Deduct sold quantity from stock
+      // Deduct stock
       stockItem.quantity -= item.quantity;
       await stockItem.save();
 
@@ -64,60 +73,56 @@ const createBill = async (req, res) => {
         productName: stockItem.productName,
         quantity: item.quantity,
         salePrice: stockItem.salePrice,
-        total: itemTotal,
+        total: item.quantity * stockItem.salePrice,
       });
     }
 
-    // ✅ Calculate Discount
-    let finalDiscount = 0;
-    if (discountType === "percent") {
-      finalDiscount = (totalAmount * (discountValue || 0)) / 100;
-    } else if (discountType === "amount") {
-      finalDiscount = discountValue || 0;
-    }
-
-    // ✅ Labour Cost + Total
-    const labour = Number(labourCost) || 0;
-    const discountedTotal = totalAmount - finalDiscount + labour;
-
-    // ✅ Remaining & Status
-    const paidAmount = Number(userPaidAmount) || 0;
-    const remainingAmount = discountedTotal - paidAmount;
-    const isPaid = remainingAmount <= 0;
-
-    // ✅ Create Bill
+    // -------------------------
+    // CREATE BILL (NO BACKEND CALCULATIONS)
+    // -------------------------
     const newBill = new Bills({
       billId: newBillId,
       items: processedItems,
-      discount: finalDiscount,
+
+      // FRONTEND VALUES
+      subtotal,
+      discountType,
+      discountValue,
+      discount,
+      labourCost,
+      totalAmount,
       paymentMode,
-      totalAmount: discountedTotal,
+      userPaidAmount,
       remainingAmount,
-      userPaidAmount: paidAmount,
-      labourCost: labour,
-      status: isPaid,
+      change,
+
+      // STATUS
+      status: remainingAmount <= 0,
+
+      // STAFF
       staff,
       shift,
+      isDeleted: false,
     });
 
     await newBill.save();
     await newBill.populate("staff", "name email userId -_id");
-    // ✅ Populate staff details (name, email)
-  
 
     return res.status(201).json({
       status: 201,
-      message: "✅ Bill created successfully",
+      message: "Bill created successfully",
       data: newBill,
     });
   } catch (error) {
-    console.error("❌ Error creating bill:", error);
+    console.error("Error creating bill:", error);
     return res.status(500).json({
       status: 500,
       message: "Something went wrong while creating bill",
       error: error.message,
     });
-  }}
+  }
+};
+
 const getBillByBillId = async (req, res) => {
   try {
     const { billId } = req.params;
