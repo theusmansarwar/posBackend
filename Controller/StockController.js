@@ -177,6 +177,28 @@ const listStock = async (req, res) => {
     });
   }
 };
+const reportStock = async (req, res) => {
+  try {
+ 
+
+    const total = await Stock.countDocuments();
+    const stocks = await Stock.find()
+      .sort({ createdAt: 1 })
+
+    return res.status(200).json({
+      status: 200,
+      message: "Stock records fetched successfully",
+      totalRecords: total,
+      data: stocks,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching stock records",
+      error: error.message,
+    });
+  }
+};
 
 // ✅ Update Complete Stock Record
 const updateStock = async (req, res) => {
@@ -306,4 +328,5 @@ module.exports = {
   updateStock,
   deleteStock,
   deleteMultipleStocks,
+  reportStock
 };

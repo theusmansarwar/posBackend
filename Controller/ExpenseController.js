@@ -1,11 +1,9 @@
 const Expense = require("../Models/ExpenseModel");
 
-// 🧾 Add new expense with auto-generated ExpenseId
 const AddExpense = async (req, res) => {
   try {
     const { name, amount, comment } = req.body;
 
-    // ✅ Validation
     const missingFields = [];
     if (!name) missingFields.push({ name: "name", message: "Name is required" });
     if (!amount) missingFields.push({ name: "amount", message: "Amount is required" });
@@ -17,8 +15,6 @@ const AddExpense = async (req, res) => {
         missingFields,
       });
     }
-
-    // ✅ Generate new Expense ID (E0001, E0002, ...)
     const lastExpense = await Expense.findOne().sort({ createdAt: -1 });
     let newIdNumber = 1;
     if (lastExpense && lastExpense.ExpenseId) {
@@ -26,8 +22,6 @@ const AddExpense = async (req, res) => {
       newIdNumber = lastNumber + 1;
     }
     const ExpenseId = `E${String(newIdNumber).padStart(4, "0")}`;
-
-    // ✅ Create and Save
     const newExpense = new Expense({
       ExpenseId,
       name,
@@ -51,7 +45,6 @@ const AddExpense = async (req, res) => {
   }
 };
 
-// 📄 Get all expenses (search by name or ExpenseId)
 const getAllExpense = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -88,8 +81,28 @@ const getAllExpense = async (req, res) => {
     });
   }
 };
+const getExpenseReport = async (req, res) => {
+  try {
+   
+    const totalExpense = await Expense.countDocuments();
+    const expenses = await Expense.find()
+      .sort({ createdAt: -1 })
 
-// ✏️ Update expense
+    return res.status(200).json({
+      status: 200,
+      message: "Expenses fetched successfully",
+      totalExpense,
+      data: expenses,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Something went wrong while fetching expenses",
+      details: error.message,
+    });
+  }
+};
+
 const updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
@@ -162,4 +175,4 @@ const deleteMultipleExpense = async (req, res) => {
   }
 };
 
-module.exports = { AddExpense, getAllExpense, updateExpense, deleteMultipleExpense };
+module.exports = { AddExpense, getAllExpense, updateExpense, deleteMultipleExpense,getExpenseReport };

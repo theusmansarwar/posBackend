@@ -215,6 +215,32 @@ const listBills = async (req, res) => {
     });
   }
 };
+const getBillReport = async (req, res) => {
+  try {
+   
+
+    const total = await Bills.countDocuments();
+
+    const bills = await Bills.find()
+      .populate("staff", "name email role")
+      .populate("items.productId", "productName salePrice quantity")
+      .sort({ createdAt: -1 })
+      
+    return res.json({
+      status: 200,
+      message: "Bills fetched successfully",
+      totalRecords: total,
+      
+      data: bills,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching bills",
+      error: error.message,
+    });
+  }
+};
 
 // ❌ Delete Bill
 const deleteMultiBills = async (req, res) => {
@@ -412,5 +438,6 @@ module.exports = {
   deleteMultiBills,
   getBillByBillId,
   updateBill,
-  getSalesActivity
+  getSalesActivity,
+  getBillReport
 };
