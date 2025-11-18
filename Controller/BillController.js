@@ -334,10 +334,50 @@ const updateBill = async (req, res) => {
 };
 
 
+
+const getSalesActivity = async (req, res) => {
+  try {
+    const sales = await Bills.aggregate([
+      { $unwind: "$items" },
+
+      {
+        $group: {
+          _id: "$items.productId",
+          productName: { $first: "$items.productName" },
+
+          // total quantity sold (already adjusted for returns)
+          totalSold: { $sum: "$items.quantity" },
+
+          // latest sale date
+          lastSoldAt: { $max: "$createdAt" },
+        },
+      },
+
+      // sort by latest sale
+      { $sort: { lastSoldAt: -1 } },
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Sales activity fetched successfully",
+      data: sales,
+    });
+  } catch (error) {
+    console.error("Sales Activity Error:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching sales activity",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createBill,
   listBills,
   deleteMultiBills,
   getBillByBillId,
-  updateBill
+  updateBill,
+  getSalesActivity
 };
