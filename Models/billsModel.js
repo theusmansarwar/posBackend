@@ -18,6 +18,7 @@ const BillsSchema = new mongoose.Schema(
           required: true,
         },
         productName: { type: String },
+        productCode: { type: String },
         quantity: { type: Number },
         salePrice: { type: Number }, // per-unit sale price
         total: { type: Number }, // quantity * salePrice

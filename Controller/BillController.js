@@ -84,6 +84,7 @@ if (missingFields.length > 0) {
       processedItems.push({
         productId: stockItem._id,
         productName: stockItem.productName,
+        productCode: stockItem.productId || "",
         quantity: item.quantity,
         salePrice: item.salePrice,
         total: item.quantity * item.salePrice,
@@ -337,29 +338,61 @@ const updateBill = async (req, res) => {
 
 const getSalesActivity = async (req, res) => {
   try {
-    const sales = await Bills.aggregate([
+    let { page, limit, keyword } = req.query;
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
+    keyword = keyword ? keyword.trim() : "";
+
+    const matchStage = keyword
+      ? { "items.productName": { $regex: keyword, $options: "i" } }
+      : {};
+
+    const salesAggregation = [
       { $unwind: "$items" },
+      { $match: matchStage },
 
       {
         $group: {
-          _id: "$items.productId",
-          productName: { $first: "$items.productName" },
-
-          // total quantity sold (already adjusted for returns)
-          totalSold: { $sum: "$items.quantity" },
-
-          // latest sale date
-          lastSoldAt: { $max: "$createdAt" },
-        },
+      _id: "$items.productCode",   // <-- return P0001
+      productId: { $first: "$items.productId" },   // MongoID
+      productCode: { $first: "$items.productCode" },  // P0001
+      productName: { $first: "$items.productName" },
+      totalSold: { $sum: "$items.quantity" },
+      lastSoldAt: { $max: "$createdAt" },
+    },
       },
 
-      // sort by latest sale
       { $sort: { lastSoldAt: -1 } },
+
+      // pagination
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    ];
+
+    const countAggregation = [
+      { $unwind: "$items" },
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$items.productId"
+        }
+      },
+      { $count: "totalRecords" }
+    ];
+
+    const [sales, totalCountResult] = await Promise.all([
+      Bills.aggregate(salesAggregation),
+      Bills.aggregate(countAggregation)
     ]);
+
+    const totalRecords = totalCountResult.length > 0 ? totalCountResult[0].totalRecords : 0;
 
     return res.status(200).json({
       status: 200,
       message: "Sales activity fetched successfully",
+      totalRecords,
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
       data: sales,
     });
   } catch (error) {
