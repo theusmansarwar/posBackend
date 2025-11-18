@@ -91,6 +91,32 @@ const getDashboardData = async (req, res) => {
       Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
       Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
     ]);
+    const labourPipeline = (start, end) => [
+  { $match: { createdAt: { $gte: start, $lte: end } } },
+  {
+    $group: {
+      _id: null,
+      totalLabour: { $sum: "$labourCost" },
+    },
+  },
+];
+
+    const [
+  labourToday,
+  labourYesterday,
+  labourWeek,
+  labourMonth,
+  labourLastMonth,
+  totalLabourCost
+] = await Promise.all([
+  Bills.aggregate(labourPipeline(startOfDay(today), endOfDay(today))),
+  Bills.aggregate(labourPipeline(startOfDay(yesterday), endOfDay(yesterday))),
+  Bills.aggregate(labourPipeline(startOfWeek(today), endOfDay(today))),
+  Bills.aggregate(labourPipeline(startOfMonth(today), endOfMonth(today))),
+  Bills.aggregate(labourPipeline(lastMonthStart, lastMonthEnd)),
+  Bills.aggregate([{ $group: { _id: null, totalLabour: { $sum: "$labourCost" } } }]),
+]);
+
 
     // =======================
     // 🧾 TOTAL SALES (ALL TIME)
@@ -157,6 +183,15 @@ const getDashboardData = async (req, res) => {
           sale: totalSales[0]?.totalSaleAmount || 0,
         },
       },
+      labourCost: {
+  today: labourToday[0]?.totalLabour || 0,
+  yesterday: labourYesterday[0]?.totalLabour || 0,
+  thisWeek: labourWeek[0]?.totalLabour || 0,
+  thisMonth: labourMonth[0]?.totalLabour || 0,
+  lastMonth: labourLastMonth[0]?.totalLabour || 0,
+  totalLabourCost: totalLabourCost[0]?.totalLabour || 0,
+},
+
 
       pendingAmount: pendingAmount[0]?.totalPending || 0,
     });
