@@ -8,7 +8,8 @@ const BillsSchema = new mongoose.Schema(
       unique: true,
     },
     isDeleted: { type: Boolean, default: true },
-
+    customerName: { type: String },
+    customerPhone: { type: String },
     items: [
       {
         productId: {

@@ -18,16 +18,28 @@ const createBill = async (req, res) => {
       change,
       staff,
       shift,
+      customerName,
+      customerPhone
     } = req.body;
 
     // -------------------------
     // VALIDATION
     // -------------------------
-    if (!staff) return res.status(400).json({ message: "Staff ID is required" });
-    if (!totalAmount) return res.status(400).json({ message: "totalAmount is required" });
-    if (!shift) return res.status(400).json({ message: "Shift is required" });
-    if (!paymentMode)
-      return res.status(400).json({ message: "Payment mode is required" });
+  const missingFields = [];
+
+if (!staff) missingFields.push({ name: "staff", message: "Staff ID is required" });
+if (!totalAmount) missingFields.push({ name: "totalAmount", message: "Total amount is required" });
+if (!customerPhone) missingFields.push({ name: "customerPhone", message: "Customer phone is required" });
+if (!customerName) missingFields.push({ name: "customerName", message: "Customer name is required" });
+if (!shift) missingFields.push({ name: "shift", message: "Shift is required" });
+if (!paymentMode) missingFields.push({ name: "paymentMode", message: "Payment mode is required" });
+
+if (missingFields.length > 0) {
+  return res.status(400).json({
+    message: "Missing required fields",
+    missingFields,
+  });
+}
 
     if (!items || !Array.isArray(items) || items.length === 0)
       return res
@@ -94,6 +106,8 @@ const createBill = async (req, res) => {
       userPaidAmount,
       remainingAmount,
       change,
+      customerName,
+      customerPhone,
       status: remainingAmount <= 0,
       staff,
       shift,
