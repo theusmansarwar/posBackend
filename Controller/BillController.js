@@ -428,6 +428,153 @@ const getSalesActivity = async (req, res) => {
   }
 };
 
+// 🔍 Get all pending bills
+// 🔍 Get all pending bills with pagination
+const getPendingBills = async (req, res) => {
+  try {
+    const { keyword, page = 1, limit = 10 } = req.query;
+
+    const query = { remainingAmount: { $gt: 0 } };
+
+    // Optional search
+    if (keyword) {
+      query.$or = [
+        { billId: { $regex: keyword, $options: "i" } },
+        { customerName: { $regex: keyword, $options: "i" } },
+        { customerPhone: { $regex: keyword, $options: "i" } },
+      ];
+    }
+
+    const pageNumber = parseInt(page);
+    const pageLimit = parseInt(limit);
+
+    const skip = (pageNumber - 1) * pageLimit;
+
+    // Get total pending bills count
+    const totalRecords = await Bills.countDocuments(query);
+
+    // Fetch paginated data
+    const pendingBills = await Bills.find(query)
+      .select(
+        "billId customerName customerPhone totalAmount userPaidAmount remainingAmount createdAt"
+      )
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageLimit);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Pending bills fetched successfully",
+      page: pageNumber,
+      limit: pageLimit,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / pageLimit),
+      data: pendingBills,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching pending bills:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching pending bills",
+      error: error.message,
+    });
+  }
+};
+// ❌ Delete pending bill entry → Reset remaining + paid amount
+const deletePendingBills = async (req, res) => {
+  try {
+    const { ids } = req.body; // array of billIds
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        message: "billIds array is required"
+      });
+    }
+
+    let updatedBills = [];
+
+    for (const ids of ids) {
+      const bill = await Bills.findOne({ ids });
+
+      if (bill) {
+        bill.userPaidAmount = 0;
+        bill.remainingAmount = bill.totalAmount;
+
+        await bill.save();
+        updatedBills.push(bill);
+      }
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Selected pending bills reset successfully",
+      modifiedBills: updatedBills.length,
+      data: updatedBills
+    });
+
+  } catch (error) {
+    console.error("❌ Error resetting pending bills:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Server error resetting pending bills",
+      error: error.message,
+    });
+  }
+};
+
+// 💵 Update pending bill payment and details
+const updatePendingBill = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const {
+      payAmount,            // amount user is paying now
+      customerName,
+      customerPhone,
+      paymentMode,
+      shift,
+      staff
+    } = req.body;
+
+    const bill = await Bills.findOne({ billId });
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
+
+    // Update payment
+    const oldPaid = bill.userPaidAmount || 0;
+    const oldRemaining = bill.remainingAmount || bill.totalAmount;
+
+    const newPaid = oldPaid + (payAmount || 0);
+    const newRemaining = bill.totalAmount - newPaid;
+
+    bill.userPaidAmount = newPaid;
+    bill.remainingAmount = newRemaining < 0 ? 0 : newRemaining;
+
+    // Update other fields if provided
+    if (customerName) bill.customerName = customerName;
+    if (customerPhone) bill.customerPhone = customerPhone;
+    if (paymentMode) bill.paymentMode = paymentMode;
+    if (shift) bill.shift = shift;
+    if (staff) bill.staff = staff;
+
+    await bill.save();
+
+    return res.status(200).json({
+      status: 200,
+      message: "Pending bill updated successfully",
+      data: bill,
+    });
+
+  } catch (error) {
+    console.error("❌ Error updating pending bill:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error updating pending bill",
+      error: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   createBill,
@@ -436,5 +583,9 @@ module.exports = {
   getBillByBillId,
   updateBill,
   getSalesActivity,
-  getBillReport
+  getBillReport,
+  getPendingBills,
+  deletePendingBills,
+  updatePendingBill
+  
 };
