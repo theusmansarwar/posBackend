@@ -80,12 +80,12 @@ const getDashboardData = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Expense.aggregate([
-        { $group: { _id: null, total: { $sum: "$amount" } } }, // total all-time expenses
+        { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
     ]);
 
     // =======================
-    // 📦 PRODUCTS DATA
+    // 📦 PRODUCTS (TOTAL STOCK VALUE)
     // =======================
     const totalProducts = await Stock.countDocuments();
 
@@ -99,7 +99,7 @@ const getDashboardData = async (req, res) => {
     ]);
 
     // =======================
-    // 🛒 SOLD PRODUCTS (QTY + PRICE)
+    // 🛒 SALES — FIXED TO USE Bills.items.salePrice ONLY
     // =======================
     const soldPipeline = (start, end) => [
       { $match: { createdAt: { $gte: start, $lte: end } } },
@@ -109,22 +109,31 @@ const getDashboardData = async (req, res) => {
           _id: null,
           totalQty: { $sum: "$items.quantity" },
           totalPrice: {
-            $sum: { $multiply: ["$items.quantity", "$items.salePrice"] },
+            $sum: { $multiply: ["$items.quantity", "$items.salePrice"] }, // 🎯 FIXED
           },
         },
       },
     ];
 
-    const [soldToday, soldYesterday, soldWeek, soldMonth, soldLastMonth] =
-      await Promise.all([
-        Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
-        Bills.aggregate(
-          soldPipeline(startOfDay(yesterday), endOfDay(yesterday))
-        ),
-        Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
-        Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
-        Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
-      ]);
+    const [
+      soldToday,
+      soldYesterday,
+      soldWeek,
+      soldMonth,
+      soldLastMonth,
+    ] = await Promise.all([
+      Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
+      Bills.aggregate(
+        soldPipeline(startOfDay(yesterday), endOfDay(yesterday))
+      ),
+      Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
+      Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
+      Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
+    ]);
+
+    // =======================
+    // 🛠 LABOUR COST
+    // =======================
     const labourPipeline = (start, end) => [
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
@@ -164,7 +173,7 @@ const getDashboardData = async (req, res) => {
         $group: {
           _id: null,
           totalSaleAmount: {
-            $sum: { $multiply: ["$items.quantity", "$items.salePrice"] },
+            $sum: { $multiply: ["$items.quantity", "$items.salePrice"] }, // 🎯 FIXED
           },
           totalQtySold: { $sum: "$items.quantity" },
         },
@@ -222,6 +231,7 @@ const getDashboardData = async (req, res) => {
           sale: totalSales[0]?.totalSaleAmount || 0,
         },
       },
+
       labourCost: {
         today: labourToday[0]?.totalLabour || 0,
         yesterday: labourYesterday[0]?.totalLabour || 0,
