@@ -524,31 +524,45 @@ const deletePendingBills = async (req, res) => {
     });
   }
 };
-
-
-// 💵 Update pending bill payment and details
 const updatePendingBill = async (req, res) => {
   try {
     const { billId } = req.params;
-    const {
-      payAmount,            // amount user is paying now
-  
-    } = req.body;
+    const { payAmount } = req.body; // amount customer is paying now
+
+    if (!billId) {
+      return res.status(400).json({ message: "Bill ID is required" });
+    }
+
+    if (payAmount === undefined || payAmount < 0) {
+      return res.status(400).json({ message: "payAmount is required and must be >= 0" });
+    }
 
     const bill = await Bills.findOne({ billId });
     if (!bill) {
       return res.status(404).json({ message: "Bill not found" });
     }
 
-    // Update payment
+    // Previous amounts
     const oldPaid = bill.userPaidAmount || 0;
     const oldRemaining = bill.remainingAmount || bill.totalAmount;
 
-    const newPaid = oldPaid + (payAmount || 0);
-    const newRemaining = bill.totalAmount - newPaid;
+    // New amounts
+    const newPaid = oldPaid + payAmount;
+    let newRemaining = bill.totalAmount - newPaid;
+    if (newRemaining < 0) newRemaining = 0;
 
+    // Update bill
     bill.userPaidAmount = newPaid;
-    bill.remainingAmount = newRemaining < 0 ? 0 : newRemaining;
+    bill.remainingAmount = newRemaining;
+    bill.status = newRemaining === 0; // mark paid if fully paid
+
+    // Optional: keep payment history
+    bill.paymentHistory = bill.paymentHistory || [];
+    bill.paymentHistory.push({
+      paidNow: payAmount,
+      date: new Date(),
+    });
+
     await bill.save();
 
     return res.status(200).json({
@@ -579,5 +593,5 @@ module.exports = {
   getPendingBills,
   deletePendingBills,
   updatePendingBill
-  
+ 
 };
