@@ -274,8 +274,7 @@ const updateBill = async (req, res) => {
     const { items, staff, shift, paymentMode, customerName, customerPhone, totalAmount, discountType, discountValue, discount, labourCost, userPaidAmount, remainingAmount, change } = req.body;
 
     if (!billId) return res.status(400).json({ message: "Bill ID is required" });
-    if (!items || !Array.isArray(items) || items.length === 0) return res.status(400).json({ message: "No items provided" });
-
+   
     // Fetch existing bill
     const existingBill = await Bills.findOne({ billId });
     if (!existingBill) return res.status(404).json({ message: "Bill not found" });
