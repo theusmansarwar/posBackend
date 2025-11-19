@@ -428,8 +428,6 @@ const getSalesActivity = async (req, res) => {
   }
 };
 
-// 🔍 Get all pending bills
-// 🔍 Get all pending bills with pagination
 const getPendingBills = async (req, res) => {
   try {
     const { keyword, page = 1, limit = 10 } = req.query;
@@ -450,10 +448,8 @@ const getPendingBills = async (req, res) => {
 
     const skip = (pageNumber - 1) * pageLimit;
 
-    // Get total pending bills count
     const totalRecords = await Bills.countDocuments(query);
 
-    // Fetch paginated data
     const pendingBills = await Bills.find(query)
       .select(
         "billId customerName customerPhone totalAmount userPaidAmount remainingAmount createdAt"
@@ -480,36 +476,43 @@ const getPendingBills = async (req, res) => {
     });
   }
 };
-// ❌ Delete pending bill entry → Reset remaining + paid amount
+
 const deletePendingBills = async (req, res) => {
   try {
-    const { ids } = req.body; // array of billIds
+    const { ids } = req.body; // array of MongoDB _id values
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
-        message: "billIds array is required"
+        message: "ids array (_id of bills) is required",
+      });
+    }
+
+    // Fetch all matching bills
+    const bills = await Bills.find({ _id: { $in: ids } });
+
+    if (bills.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "No bills found for the given ids",
       });
     }
 
     let updatedBills = [];
 
-    for (const ids of ids) {
-      const bill = await Bills.findOne({ ids });
+    for (const bill of bills) {
+      bill.userPaidAmount = 0;
+      bill.remainingAmount = bill.totalAmount;
+      bill.status = false; // still unpaid
 
-      if (bill) {
-        bill.userPaidAmount = 0;
-        bill.remainingAmount = bill.totalAmount;
-
-        await bill.save();
-        updatedBills.push(bill);
-      }
+      await bill.save();
+      updatedBills.push(bill);
     }
 
     return res.status(200).json({
       status: 200,
       message: "Selected pending bills reset successfully",
       modifiedBills: updatedBills.length,
-      data: updatedBills
+      data: updatedBills,
     });
 
   } catch (error) {
@@ -522,17 +525,14 @@ const deletePendingBills = async (req, res) => {
   }
 };
 
+
 // 💵 Update pending bill payment and details
 const updatePendingBill = async (req, res) => {
   try {
     const { billId } = req.params;
     const {
       payAmount,            // amount user is paying now
-      customerName,
-      customerPhone,
-      paymentMode,
-      shift,
-      staff
+  
     } = req.body;
 
     const bill = await Bills.findOne({ billId });
@@ -549,14 +549,6 @@ const updatePendingBill = async (req, res) => {
 
     bill.userPaidAmount = newPaid;
     bill.remainingAmount = newRemaining < 0 ? 0 : newRemaining;
-
-    // Update other fields if provided
-    if (customerName) bill.customerName = customerName;
-    if (customerPhone) bill.customerPhone = customerPhone;
-    if (paymentMode) bill.paymentMode = paymentMode;
-    if (shift) bill.shift = shift;
-    if (staff) bill.staff = staff;
-
     await bill.save();
 
     return res.status(200).json({
