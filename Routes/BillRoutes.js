@@ -11,7 +11,8 @@ const {
   getBillReport, 
   getPendingBills,       
   updatePendingBill,       
-  deletePendingBills
+  deletePendingBills,
+  getSales2Activity
 } = require("../Controller/BillController");
 router.post("/create", createBill);
 router.get("/list", listBills);
@@ -20,6 +21,7 @@ router.get("/pendingamount", getPendingBills);
 router.delete("/pending/deletemany", deletePendingBills);
 router.put("/pending/:billId", updatePendingBill);
 router.get("/salesactivity", getSalesActivity);
+router.get("/sales2activity", getSales2Activity);
 router.delete("/deletemany", deleteMultiBills);
 router.get("/:billId", getBillByBillId);
 router.put("/:billId", updateBill);

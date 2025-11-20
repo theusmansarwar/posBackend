@@ -427,14 +427,89 @@ const getSalesActivity = async (req, res) => {
     });
   }
 };
+const getSales2Activity = async (req, res) => {
+  try {
+    let { page, limit, keyword } = req.query;
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 10;
+    keyword = keyword ? keyword.trim() : "";
+
+    const matchStage = keyword
+      ? { "items.productName": { $regex: keyword, $options: "i" } }
+      : {};
+
+    const salesAggregation = [
+      { $unwind: "$items" },
+      { $match: matchStage },
+
+      {
+        $group: {
+          _id: "$items.productCode",              // product code P0001
+          productId: { $first: "$items.productId" },
+          productCode: { $first: "$items.productCode" },
+          productName: { $first: "$items.productName" },
+
+          // ✅ Sold price (from items)
+          soldPrice: { $first: "$items.salePrice" },
+
+          // ✅ Customer name
+          customerName: { $first: "$customerName" },
+
+          totalSold: { $sum: "$items.quantity" },
+          lastSoldAt: { $max: "$createdAt" },
+        },
+      },
+
+      { $sort: { lastSoldAt: -1 } },
+
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    ];
+
+    const countAggregation = [
+      { $unwind: "$items" },
+      { $match: matchStage },
+      {
+        $group: {
+          _id: "$items.productId"
+        }
+      },
+      { $count: "totalRecords" }
+    ];
+
+    const [sales, totalCountResult] = await Promise.all([
+      Bills.aggregate(salesAggregation),
+      Bills.aggregate(countAggregation)
+    ]);
+
+    const totalRecords =
+      totalCountResult.length > 0 ? totalCountResult[0].totalRecords : 0;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Sales activity fetched successfully",
+      totalRecords,
+      currentPage: page,
+      totalPages: Math.ceil(totalRecords / limit),
+      data: sales,
+    });
+
+  } catch (error) {
+    console.error("Sales Activity Error:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching sales activity",
+      error: error.message,
+    });
+  }
+};
+
+
 
 const getPendingBills = async (req, res) => {
   try {
     const { keyword, page = 1, limit = 10 } = req.query;
-
     const query = { remainingAmount: { $gt: 0 } };
-
-    // Optional search
     if (keyword) {
       query.$or = [
         { billId: { $regex: keyword, $options: "i" } },
@@ -442,14 +517,10 @@ const getPendingBills = async (req, res) => {
         { customerPhone: { $regex: keyword, $options: "i" } },
       ];
     }
-
     const pageNumber = parseInt(page);
     const pageLimit = parseInt(limit);
-
     const skip = (pageNumber - 1) * pageLimit;
-
     const totalRecords = await Bills.countDocuments(query);
-
     const pendingBills = await Bills.find(query)
       .select(
         "billId customerName customerPhone totalAmount userPaidAmount remainingAmount createdAt"
@@ -457,7 +528,6 @@ const getPendingBills = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(pageLimit);
-
     return res.status(200).json({
       status: 200,
       message: "Pending bills fetched successfully",
@@ -476,29 +546,22 @@ const getPendingBills = async (req, res) => {
     });
   }
 };
-
 const deletePendingBills = async (req, res) => {
   try {
-    const { ids } = req.body; // array of MongoDB _id values
-
+    const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
         message: "ids array (_id of bills) is required",
       });
     }
-
-    // Fetch all matching bills
     const bills = await Bills.find({ _id: { $in: ids } });
-
     if (bills.length === 0) {
       return res.status(404).json({
         status: 404,
         message: "No bills found for the given ids",
       });
     }
-
     let updatedBills = [];
-
     for (const bill of bills) {
       bill.userPaidAmount = 0;
       bill.remainingAmount = bill.totalAmount;
@@ -507,14 +570,12 @@ const deletePendingBills = async (req, res) => {
       await bill.save();
       updatedBills.push(bill);
     }
-
     return res.status(200).json({
       status: 200,
       message: "Selected pending bills reset successfully",
       modifiedBills: updatedBills.length,
       data: updatedBills,
     });
-
   } catch (error) {
     console.error("❌ Error resetting pending bills:", error);
     return res.status(500).json({
@@ -546,31 +607,23 @@ const updatePendingBill = async (req, res) => {
     const oldPaid = bill.userPaidAmount || 0;
     const oldRemaining = bill.remainingAmount || bill.totalAmount;
 
-    // New amounts
     const newPaid = oldPaid + payAmount;
     let newRemaining = bill.totalAmount - newPaid;
     if (newRemaining < 0) newRemaining = 0;
-
-    // Update bill
     bill.userPaidAmount = newPaid;
     bill.remainingAmount = newRemaining;
-    bill.status = newRemaining === 0; // mark paid if fully paid
-
-    // Optional: keep payment history
+    bill.status = newRemaining === 0;
     bill.paymentHistory = bill.paymentHistory || [];
     bill.paymentHistory.push({
       paidNow: payAmount,
       date: new Date(),
     });
-
     await bill.save();
-
     return res.status(200).json({
       status: 200,
       message: "Pending bill updated successfully",
       data: bill,
     });
-
   } catch (error) {
     console.error("❌ Error updating pending bill:", error);
     return res.status(500).json({
@@ -579,10 +632,8 @@ const updatePendingBill = async (req, res) => {
       error: error.message,
     });
   }
-};
-
-
-module.exports = {
+}; 
+module.exports = { 
   createBill,
   listBills,
   deleteMultiBills,
@@ -592,6 +643,6 @@ module.exports = {
   getBillReport,
   getPendingBills,
   deletePendingBills,
-  updatePendingBill
- 
+  updatePendingBill,
+  getSales2Activity
 };
