@@ -1,5 +1,5 @@
 const express= require("express");
-const { createStock, listStock, updateStock, deleteStock, deleteMultipleStocks, addnewStock, reportStock } = require("../Controller/StockController");
+const { createStock, listStock, updateStock, deleteStock, deleteMultipleStocks, addnewStock, reportStock, getProductSalesReport } = require("../Controller/StockController");
 const router=express.Router();
 router.post("/create", createStock);
 router.get("/list", listStock);
@@ -8,4 +8,5 @@ router.put("/addnew/:id", addnewStock);
 router.delete("/delete/:id", deleteStock);
 router.delete("/deleteMultiple", deleteMultipleStocks);
 router.get("/report", reportStock);
+router.get("/Product-Sales-Report", getProductSalesReport);
 module.exports = router; 

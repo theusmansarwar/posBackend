@@ -1,4 +1,6 @@
 const Stock = require("../Models/StockModel");
+const Bills = require("../Models/billsModel");
+const mongoose = require("mongoose");
 
 // ✅ Create Stock
 const createStock = async (req, res) => {
@@ -321,6 +323,111 @@ const deleteMultipleStocks = async (req, res) => {
   }
 };
 
+const getProductSalesReport = async (req, res) => {
+  try {
+    const { filter } = req.query;
+
+    // -----------------------------
+    //  DATE RANGE. (Start - End)
+    // -----------------------------
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (filter) {
+      case "today":
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        endDate = new Date();
+        break;
+
+      case "yesterday":
+        startDate = new Date(now.setDate(now.getDate() - 1));
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(now.setHours(23, 59, 59, 999));
+        break;
+
+      case "thisWeek":
+        const weekDay = now.getDay();
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - weekDay);
+        startDate.setHours(0, 0, 0, 0);
+
+        endDate = new Date();
+        break;
+
+      case "thisMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date();
+        break;
+
+      case "lastMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+
+      case "allTime":
+      default:
+        startDate = new Date(0);
+        endDate = new Date();
+    }
+
+    // -----------------------------
+    //  MAIN AGGREGATION
+    // -----------------------------
+    const report = await Bills.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate },
+        },
+      },
+      { $unwind: "$items" },
+
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "productData",
+        },
+      },
+
+      { $unwind: "$productData" },
+
+      {
+        $group: {
+          _id: "$items.productId",
+          productId: { $first: "$items.productId" },
+          name: { $first: "$items.productName" },
+
+          totalQuantity: { $sum: "$items.quantity" },
+
+          unitPrice: { $first: "$productData.unitPrice" },
+          salePrice: { $first: "$items.salePrice" },
+
+          totalCost: {
+            $sum: { $multiply: ["$items.quantity", "$productData.unitPrice"] },
+          },
+          totalSale: {
+            $sum: { $multiply: ["$items.quantity", "$items.salePrice"] },
+          },
+        },
+      },
+
+      {
+        $addFields: {
+          profit: { $subtract: ["$totalSale", "$totalCost"] },
+        },
+      },
+    ]);
+
+    return res.json({ status: true, filter, report });
+
+  } catch (err) {
+    return res.status(500).json({ status: false, message: err.message });
+  }
+};
+
+
+
 module.exports = {
   createStock,
   addnewStock,
@@ -328,5 +435,6 @@ module.exports = {
   updateStock,
   deleteStock,
   deleteMultipleStocks,
-  reportStock
+  reportStock,
+  getProductSalesReport
 };
