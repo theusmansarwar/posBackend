@@ -387,6 +387,7 @@ const getProductSalesReport = async (req, res) => {
           localField: "items.productId",
           foreignField: "_id",
           as: "productData",
+          
         },
       },
 
@@ -395,7 +396,7 @@ const getProductSalesReport = async (req, res) => {
       {
         $group: {
           _id: "$items.productId",
-          productId: { $first: "$items.productId" },
+          productId: { $first: "$items.productCode" },
           name: { $first: "$items.productName" },
 
           totalQuantity: { $sum: "$items.quantity" },
