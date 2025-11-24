@@ -139,19 +139,13 @@ const addnewStock = async (req, res) => {
   }
 };
 
-
-// ✅ List Stocks (with search + pagination)
 const listStock = async (req, res) => {
   try {
     let { page, limit, keyword, filter } = req.query;
 
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
-    filter = filter || "all"; // default
-
-    // -----------------------------
-    // BASE KEYWORD SEARCH
-    // -----------------------------
+    filter = filter || "all";
     let query = keyword
       ? {
           $or: [
@@ -162,9 +156,6 @@ const listStock = async (req, res) => {
         }
       : {};
 
-    // -----------------------------
-    // FILTERS
-    // -----------------------------
     if (filter === "out-of-stock") {
       query.quantity = 0;
     }
@@ -172,10 +163,6 @@ const listStock = async (req, res) => {
     if (filter === "low-stock") {
       query.quantity = { $gt: 0, $lt: 10 };
     }
-
-    // -----------------------------
-    // COUNT + PAGINATION
-    // -----------------------------
     const total = await Stock.countDocuments(query);
 
     const stocks = await Stock.find(query)
