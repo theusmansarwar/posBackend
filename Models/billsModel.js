@@ -35,6 +35,7 @@ const BillsSchema = new mongoose.Schema(
     discountValue: { type: Number, default: 0 }, // % or amount value
     discount: { type: Number, default: 0 }, // actual discount applied
     labourCost: { type: Number, default: 0 },
+     tunningCost: { type: Number, default: 0 },
     totalAmount: { type: Number }, // after discount + labour
 
     // 💳 Payment Info

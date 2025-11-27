@@ -7,9 +7,10 @@ const createBill = async (req, res) => {
     const {
       items,
       subtotal,
-      discountType,
-      discountValue,
-      discount,
+      // discountType,
+      // discountValue,
+      // discount,
+      tunningCost,
       labourCost,
       totalAmount,
       paymentMode,
@@ -98,9 +99,10 @@ if (missingFields.length > 0) {
       billId: newBillId,
       items: processedItems,
       subtotal,
-      discountType,
-      discountValue,
-      discount,
+      // discountType,
+      // discountValue,
+      // discount,
+      tunningCost,
       labourCost,
       totalAmount,
       paymentMode,
@@ -271,7 +273,10 @@ const deleteMultiBills = async (req, res) => {
 const updateBill = async (req, res) => {
   try {
     const { billId } = req.params;
-    const { items, staff, shift, paymentMode, customerName, customerPhone, totalAmount, discountType, discountValue, discount, labourCost, userPaidAmount, remainingAmount, change } = req.body;
+    const { items, staff, shift, paymentMode, customerName, customerPhone, totalAmount,
+      //  discountType, discountValue, discount,
+       
+       tunningCost,labourCost, userPaidAmount, remainingAmount, change } = req.body;
 
     if (!billId) return res.status(400).json({ message: "Bill ID is required" });
    
@@ -336,6 +341,7 @@ const updateBill = async (req, res) => {
     existingBill.discountValue = discountValue;
     existingBill.discount = discount;
     existingBill.labourCost = labourCost || existingBill.labourCost;
+    existingBill.tunningCost = tunningCost || existingBill.tunningCost;
     existingBill.userPaidAmount = userPaidAmount;
     existingBill.remainingAmount = remainingAmount;
     existingBill.change = change;
