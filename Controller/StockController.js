@@ -112,26 +112,26 @@ const addnewStock = async (req, res) => {
 
     //  Validation
     const missingFields = [];
-    if (quantity === undefined || quantity === null )
-      missingFields.push({ name: "quantity", message: "Quantity is required" });
+    // if (quantity === undefined || quantity === null )
+    //   missingFields.push({ name: "quantity", message: "Quantity is required" });
 
-    if (unitPrice === undefined || unitPrice === null )
-      missingFields.push({
-        name: "unitPrice",
-        message: "Unit Price is required",
-      });
+    // if (unitPrice === undefined || unitPrice === null )
+    //   missingFields.push({
+    //     name: "unitPrice",
+    //     message: "Unit Price is required",
+    //   });
     
-    if (totalPrice === undefined || totalPrice === null )
-      missingFields.push({
-        name: "totalPrice",
-        message: "Total Price is required",
-      });
+    // if (totalPrice === undefined || totalPrice === null )
+    //   missingFields.push({
+    //     name: "totalPrice",
+    //     message: "Total Price is required",
+    //   });
 
-    if (salePrice === undefined || salePrice === null )
-      missingFields.push({
-        name: "salePrice",
-        message: "Sale Price is required",
-      });
+    // if (salePrice === undefined || salePrice === null )
+    //   missingFields.push({
+    //     name: "salePrice",
+    //     message: "Sale Price is required",
+    //   });
     if (!purchaseDate)
       missingFields.push({
         name: "purchaseDate",
@@ -276,23 +276,23 @@ const updateStock = async (req, res) => {
         name: "productName",
         message: "Product Name is required",
       });
-    if (!quantity)
-      missingFields.push({ name: "quantity", message: "Quantity is required" });
-    if (!unitPrice)
-      missingFields.push({
-        name: "unitPrice",
-        message: "Unit Price is required",
-      });
-    if (!totalPrice)
-      missingFields.push({
-        name: "totalPrice",
-        message: "Total Price is required",
-      });
-    if (!salePrice)
-      missingFields.push({
-        name: "salePrice",
-        message: "Sale Price is required",
-      });
+    // if (!quantity)
+    //   missingFields.push({ name: "quantity", message: "Quantity is required" });
+    // if (!unitPrice)
+    //   missingFields.push({
+    //     name: "unitPrice",
+    //     message: "Unit Price is required",
+    //   });
+    // if (!totalPrice)
+    //   missingFields.push({
+    //     name: "totalPrice",
+    //     message: "Total Price is required",
+    //   });
+    // if (!salePrice)
+    //   missingFields.push({
+    //     name: "salePrice",
+    //     message: "Sale Price is required",
+    //   });
     if (!supplier)
       missingFields.push({ name: "supplier", message: "Supplier is required" });
     if (!rackNo)
