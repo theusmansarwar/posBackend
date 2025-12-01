@@ -9,22 +9,21 @@ const stockSchema = new mongoose.Schema(
     },
     quantity: {
       type: Number,
-      
-      min: [0, "Quantity cannot be negative"],
+
     },
     unitPrice: {
       type: Number,
-       min: [0, "Price cannot be negative"],
+    
       
     },
     totalPrice: {
       type: Number,
-       min: [0, "Price cannot be negative"],
+    
       
     },
     salePrice: {
       type: Number,
-       min: [0, "Price cannot be negative"],
+    
       
     },
     supplier: {
