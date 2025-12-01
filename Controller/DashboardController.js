@@ -115,21 +115,16 @@ const getDashboardData = async (req, res) => {
       },
     ];
 
-    const [
-      soldToday,
-      soldYesterday,
-      soldWeek,
-      soldMonth,
-      soldLastMonth,
-    ] = await Promise.all([
-      Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
-      Bills.aggregate(
-        soldPipeline(startOfDay(yesterday), endOfDay(yesterday))
-      ),
-      Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
-      Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
-      Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
-    ]);
+    const [soldToday, soldYesterday, soldWeek, soldMonth, soldLastMonth] =
+      await Promise.all([
+        Bills.aggregate(soldPipeline(startOfDay(today), endOfDay(today))),
+        Bills.aggregate(
+          soldPipeline(startOfDay(yesterday), endOfDay(yesterday))
+        ),
+        Bills.aggregate(soldPipeline(startOfWeek(today), endOfDay(today))),
+        Bills.aggregate(soldPipeline(startOfMonth(today), endOfMonth(today))),
+        Bills.aggregate(soldPipeline(lastMonthStart, lastMonthEnd)),
+      ]);
 
     // =======================
     // 🛠 LABOUR COST
@@ -163,6 +158,42 @@ const getDashboardData = async (req, res) => {
         { $group: { _id: null, totalLabour: { $sum: "$labourCost" } } },
       ]),
     ]);
+
+    // =======================
+    // 🛠 Tunning COST
+    // =======================
+    const tunningPipeline = (start, end) => [
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: null,
+          totalLabour: { $sum: "$labourCost" },
+        },
+      },
+    ];
+
+    const [
+      tunningToday,
+      tunningYesterday,
+      tunningWeek,
+      tunningMonth,
+      tunningLastMonth,
+      totalTunningCost,
+    ] = await Promise.all([
+      Bills.aggregate(tunningPipeline(startOfDay(today), endOfDay(today))),
+      Bills.aggregate(
+        tunningPipeline(startOfDay(yesterday), endOfDay(yesterday))
+      ),
+      Bills.aggregate(tunningPipeline(startOfWeek(today), endOfDay(today))),
+      Bills.aggregate(tunningPipeline(startOfMonth(today), endOfMonth(today))),
+      Bills.aggregate(tunningPipeline(lastMonthStart, lastMonthEnd)),
+      Bills.aggregate([
+        { $group: { _id: null, totalTunning: { $sum: "$tunningCost" } } },
+      ]),
+    ]);
+
+
+
 
     // =======================
     // 🧾 TOTAL SALES (ALL TIME)
@@ -232,6 +263,14 @@ const getDashboardData = async (req, res) => {
         },
       },
 
+      tunningCost: {
+        today: tunningToday[0]?.totalTunning || 0,
+        yesterday: tunningYesterday[0]?.totalTunning || 0,
+        thisWeek: tunningWeek[0]?.totalTunning || 0,
+        thisMonth: tunningMonth[0]?.totalTunning || 0,
+        lastMonth: tunningLastMonth[0]?.totalTunning || 0,
+       totalTunningCost: totalTunningCost[0]?.totalTunning || 0,
+      },
       labourCost: {
         today: labourToday[0]?.totalLabour || 0,
         yesterday: labourYesterday[0]?.totalLabour || 0,

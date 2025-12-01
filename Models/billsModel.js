@@ -27,15 +27,15 @@ const BillsSchema = new mongoose.Schema(
 
     // 💰 Pricing Details
     subtotal: { type: Number }, // total before discount/labour
-    discountType: {
-      type: String,
-      enum: ["percent", "amount"],
-      default: "amount",
-    },
-    discountValue: { type: Number, default: 0 }, // % or amount value
-    discount: { type: Number, default: 0 }, // actual discount applied
+    // discountType: {
+    //   type: String,
+    //   enum: ["percent", "amount"],
+    //   default: "amount",
+    // },
+    // discountValue: { type: Number, default: 0 },
+    // discount: { type: Number, default: 0 },
     labourCost: { type: Number, default: 0 },
-     tunningCost: { type: Number, default: 0 },
+    tunningCost: { type: Number, default: 0 },
     totalAmount: { type: Number }, // after discount + labour
 
     // 💳 Payment Info

@@ -337,9 +337,9 @@ const updateBill = async (req, res) => {
     existingBill.customerName = customerName || existingBill.customerName;
     existingBill.customerPhone = customerPhone || existingBill.customerPhone;
     existingBill.totalAmount = totalAmount;
-    existingBill.discountType = discountType;
-    existingBill.discountValue = discountValue;
-    existingBill.discount = discount;
+    // existingBill.discountType = discountType;
+    // existingBill.discountValue = discountValue;
+    // existingBill.discount = discount;
     existingBill.labourCost = labourCost || existingBill.labourCost;
     existingBill.tunningCost = tunningCost || existingBill.tunningCost;
     existingBill.userPaidAmount = userPaidAmount;

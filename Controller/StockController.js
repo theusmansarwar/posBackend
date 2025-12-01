@@ -19,13 +19,34 @@ const createStock = async (req, res) => {
 
     // ✅ Validation
     const missingFields = [];
-    if (!productName) missingFields.push({ name: "productName", message: "Product Name is required" });
-    if (!quantity) missingFields.push({ name: "quantity", message: "Quantity is required" });
-    if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
-    if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
-    if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
+    if (!productName)
+      missingFields.push({
+        name: "productName",
+        message: "Product Name is required",
+      });
+    if (!quantity)
+      missingFields.push({ name: "quantity", message: "Quantity is required" });
+    if (!unitPrice)
+      missingFields.push({
+        name: "unitPrice",
+        message: "Unit Price is required",
+      });
+    if (!totalPrice)
+      missingFields.push({
+        name: "totalPrice",
+        message: "Total Price is required",
+      });
+    if (!salePrice)
+      missingFields.push({
+        name: "salePrice",
+        message: "Sale Price is required",
+      });
     // if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
-    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
+    if (!purchaseDate)
+      missingFields.push({
+        name: "purchaseDate",
+        message: "Purchase Date is required",
+      });
     // if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
 
     if (missingFields.length > 0) {
@@ -76,20 +97,46 @@ const createStock = async (req, res) => {
   }
 };
 
-
 // ✅ Add new stock batch or update prices only
 const addnewStock = async (req, res) => {
   try {
     const { id } = req.params;
-    const { unitPrice, salePrice, totalPrice, warranty, purchaseDate, quantity } = req.body;
+    const {
+      unitPrice,
+      salePrice,
+      totalPrice,
+      warranty,
+      purchaseDate,
+      quantity,
+    } = req.body;
 
     // ✅ Validation
     const missingFields = [];
-    if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
-    if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
-    if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
-    if (!quantity) missingFields.push({ name: "quantity", message: "Quantity is required" });
-    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
+    if (quantity === undefined || quantity === null || quantity < 0)
+      missingFields.push({ name: "quantity", message: "Quantity is required" });
+
+    if (unitPrice === undefined || unitPrice === null || unitPrice < 0)
+      missingFields.push({
+        name: "unitPrice",
+        message: "Unit Price is required",
+      });
+
+    if (totalPrice === undefined || totalPrice === null || totalPrice < 0)
+      missingFields.push({
+        name: "totalPrice",
+        message: "Total Price is required",
+      });
+
+    if (salePrice === undefined || salePrice === null || salePrice < 0)
+      missingFields.push({
+        name: "salePrice",
+        message: "Sale Price is required",
+      });
+    if (!purchaseDate)
+      missingFields.push({
+        name: "purchaseDate",
+        message: "Purchase Date is required",
+      });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -178,7 +225,6 @@ const listStock = async (req, res) => {
       totalPages: Math.ceil(total / limit),
       data: stocks,
     });
-
   } catch (error) {
     return res.status(500).json({
       status: 500,
@@ -190,11 +236,8 @@ const listStock = async (req, res) => {
 
 const reportStock = async (req, res) => {
   try {
- 
-
     const total = await Stock.countDocuments();
-    const stocks = await Stock.find()
-      .sort({ createdAt: 1 })
+    const stocks = await Stock.find().sort({ createdAt: 1 });
 
     return res.status(200).json({
       status: 200,
@@ -228,14 +271,37 @@ const updateStock = async (req, res) => {
     } = req.body;
 
     const missingFields = [];
-    if (!productName) missingFields.push({ name: "productName", message: "Product Name is required" });
-    if (!quantity) missingFields.push({ name: "quantity", message: "Quantity is required" });
-    if (!unitPrice) missingFields.push({ name: "unitPrice", message: "Unit Price is required" });
-    if (!totalPrice) missingFields.push({ name: "totalPrice", message: "Total Price is required" });
-    if (!salePrice) missingFields.push({ name: "salePrice", message: "Sale Price is required" });
-    if (!supplier) missingFields.push({ name: "supplier", message: "Supplier is required" });
-    if (!rackNo) missingFields.push({ name: "rackNo", message: "Rack No is required" });
-    if (!purchaseDate) missingFields.push({ name: "purchaseDate", message: "Purchase Date is required" });
+    if (!productName)
+      missingFields.push({
+        name: "productName",
+        message: "Product Name is required",
+      });
+    if (!quantity)
+      missingFields.push({ name: "quantity", message: "Quantity is required" });
+    if (!unitPrice)
+      missingFields.push({
+        name: "unitPrice",
+        message: "Unit Price is required",
+      });
+    if (!totalPrice)
+      missingFields.push({
+        name: "totalPrice",
+        message: "Total Price is required",
+      });
+    if (!salePrice)
+      missingFields.push({
+        name: "salePrice",
+        message: "Sale Price is required",
+      });
+    if (!supplier)
+      missingFields.push({ name: "supplier", message: "Supplier is required" });
+    if (!rackNo)
+      missingFields.push({ name: "rackNo", message: "Rack No is required" });
+    if (!purchaseDate)
+      missingFields.push({
+        name: "purchaseDate",
+        message: "Purchase Date is required",
+      });
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -370,7 +436,15 @@ const getProductSalesReport = async (req, res) => {
 
       case "lastMonth":
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        endDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          0,
+          23,
+          59,
+          59,
+          999
+        );
         break;
 
       case "allTime":
@@ -396,7 +470,6 @@ const getProductSalesReport = async (req, res) => {
           localField: "items.productId",
           foreignField: "_id",
           as: "productData",
-          
         },
       },
 
@@ -430,13 +503,10 @@ const getProductSalesReport = async (req, res) => {
     ]);
 
     return res.json({ status: true, filter, report });
-
   } catch (err) {
     return res.status(500).json({ status: false, message: err.message });
   }
 };
-
-
 
 module.exports = {
   createStock,
@@ -446,5 +516,5 @@ module.exports = {
   deleteStock,
   deleteMultipleStocks,
   reportStock,
-  getProductSalesReport
+  getProductSalesReport,
 };
