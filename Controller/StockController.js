@@ -110,24 +110,24 @@ const addnewStock = async (req, res) => {
       quantity,
     } = req.body;
 
-    // ✅ Validation
+    //  Validation
     const missingFields = [];
-    if (quantity === undefined || quantity === null || quantity < 0)
+    if (quantity === undefined || quantity === null )
       missingFields.push({ name: "quantity", message: "Quantity is required" });
 
-    if (unitPrice === undefined || unitPrice === null || unitPrice < 0)
+    if (unitPrice === undefined || unitPrice === null )
       missingFields.push({
         name: "unitPrice",
         message: "Unit Price is required",
       });
-
-    if (totalPrice === undefined || totalPrice === null || totalPrice < 0)
+    
+    if (totalPrice === undefined || totalPrice === null )
       missingFields.push({
         name: "totalPrice",
         message: "Total Price is required",
       });
 
-    if (salePrice === undefined || salePrice === null || salePrice < 0)
+    if (salePrice === undefined || salePrice === null )
       missingFields.push({
         name: "salePrice",
         message: "Sale Price is required",
