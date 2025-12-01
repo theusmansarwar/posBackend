@@ -167,7 +167,7 @@ const getDashboardData = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalLabour: { $sum: "$labourCost" },
+          totalTunning: { $sum: "$tunningCost" },
         },
       },
     ];
